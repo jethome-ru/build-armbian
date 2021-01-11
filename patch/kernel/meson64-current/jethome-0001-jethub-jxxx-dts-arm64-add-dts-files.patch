@@ -19,10 +19,10 @@ index 666b1544c..903b9e1ab 100644
  dtb-$(CONFIG_ARCH_MESON) += meson-gxm-q200.dtb
 diff --git a/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
 new file mode 100644
-index 000000000..88e7904fb
+index 000000000..b6b94ba57
 --- /dev/null
 +++ b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
-@@ -0,0 +1,639 @@
+@@ -0,0 +1,683 @@
 +
 +/dts-v1/;
 +
@@ -43,6 +43,41 @@ index 000000000..88e7904fb
 +			mask = <4>;
 +		};
 +	};
++
++	efusekey: efusekey {
++		keynum = <5>;
++		key0 = <&key_0>;
++		key1 = <&key_1>;
++		key2 = <&key_2>;
++		key3 = <&key_3>;
++		key4 = <&key_4>;
++
++		key_0: key_0 {
++			keyname = "mac";
++			offset = <0>;
++			size = <6>;
++		};
++		key_1: key_1 {
++			keyname = "mac_bt";
++			offset = <6>;
++			size = <6>;
++		};
++		key_2: key_2 {
++			keyname = "mac_wifi";
++			offset = <12>;
++			size = <6>;
++		};
++		key_3: key_3 {
++			keyname = "usid";
++			offset = <18>;
++			size = <32>;
++		};
++		key_4: key_4 {
++			keyname = "serial";
++			offset = <50>;
++			size = <32>;
++		};
++	}; //End efusekey
 +
 +	unifykey {
 +		compatible = "amlogic, unifykey";
@@ -662,6 +697,15 @@ index 000000000..88e7904fb
 +	pinctrl-names = "default";
 +};
 +
++&efuse {
++	status = "okay";
++	compatible = "amlogic,meson-gxbb-efuse", "amlogic, efuse";
++	read_cmd = <0x82000030>;
++	write_cmd = <0x82000031>;
++	get_max_cmd = <0x82000033>;
++	key = <&efusekey>;
++	clock-names = "efuse_clk";
++};
 diff --git a/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts b/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts
 new file mode 100644
 index 000000000..2f035b84b
