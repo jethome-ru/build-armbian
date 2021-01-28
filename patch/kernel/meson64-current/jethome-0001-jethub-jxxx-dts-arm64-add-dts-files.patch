@@ -708,10 +708,10 @@ index 000000000..b6b94ba57
 +};
 diff --git a/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts b/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts
 new file mode 100644
-index 000000000..2f035b84b
+index 000000000..a16272e56
 --- /dev/null
 +++ b/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts
-@@ -0,0 +1,120 @@
+@@ -0,0 +1,131 @@
 +
 +/dts-v1/;
 +
@@ -726,6 +726,10 @@ index 000000000..2f035b84b
 +	memory@0 {
 +		device_type = "memory";
 +		reg = <0x0 0x0 0x0 0x40000000>;
++	};
++
++	aliases {
++                serial1 = &uart_A;    /* Bluetooth */
 +	};
 +
 +	partitions: partitions {
@@ -832,3 +836,10 @@ index 000000000..2f035b84b
 +	key = <&efusekey>;
 +	clock-names = "efuse_clk";
 +};
++
++&uart_A {
++	status = "okay";
++	pinctrl-0 = <&uart_a_pins>, <&uart_a_cts_rts_pins>;
++	pinctrl-names = "default";
++};
++
