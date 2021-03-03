@@ -513,6 +513,8 @@ $([[ -n $COMPRESS_OUTPUTIMAGE ]] && echo "COMPRESS_OUTPUTIMAGE=${COMPRESS_OUTPUT
 
 } # end of do_default()
 
+gpg --import ${SRC}/exported.key || exit_with_error "Unable to import key"
+
 if [[ -z $1 ]]; then
 	do_default
 else
