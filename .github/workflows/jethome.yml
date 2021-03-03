@@ -1,0 +1,62 @@
+---
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+"on":
+  push:
+    tags: [jethome_release_*]
+  pull_request:
+    tags: [jethome_release_*]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: self-hosted
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Fix Permitions
+        run: sudo chown -R actions:actions /home/actions/actions-runner/_work/
+
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      - name: Set JETHOME_CI_DEBS_DIR variable
+        run: |
+         if [[ "$GITHUB_REF" = refs/tags/jethome_release_* ]]; then \
+           echo "JETHOME_CI_DEBS_DIR=release_vanilla" >> $GITHUB_ENV; \
+           echo "JETHOME_CI_FIRMW_DIR=" >> $GITHUB_ENV; \
+         else \
+           echo "Unexpected tag name format"; \
+           exit 1; \
+         fi
+
+      - name: Copy key
+        run: |
+         cp /home/actions/exported.key ./
+
+      - name: Compile
+        run: |
+         if [[ "$GITHUB_REF" = refs/tags/jethome_release_j80* ]]; then \
+           ./compile.sh docker BOARD=jethub-j80 LIB_TAG=jethub-repo GPG_PASS=fakepass CLEAN_LEVEL="make,alldebs,cache" BRANCH=current RELEASE=focal BUILD_MINIMAL=no BUILD_DESKTOP=no KERNEL_ONLY=no KERNEL_CONFIGURE=no COMPRESS_OUTPUTIMAGE=sha,gpg,img,xz; \
+         elif [[ "$GITHUB_REF" = refs/tags/jethome_release_j100* ]]; then \
+           ./compile.sh docker BOARD=jethub-j100 LIB_TAG=jethub-repo GPG_PASS=fakepass CLEAN_LEVEL="make,alldebs,cache" BRANCH=current RELEASE=focal BUILD_MINIMAL=no BUILD_DESKTOP=no KERNEL_ONLY=no KERNEL_CONFIGURE=no COMPRESS_OUTPUTIMAGE=sha,gpg,img,xz; \
+         elif [[ "$GITHUB_REF" = refs/tags/jethome_release_jxxx* ]]; then \
+           ./compile.sh docker BOARD=jethub-j80 LIB_TAG=jethub-repo GPG_PASS=fakepass CLEAN_LEVEL="make,alldebs,cache" BRANCH=current RELEASE=focal BUILD_MINIMAL=no BUILD_DESKTOP=no KERNEL_ONLY=no KERNEL_CONFIGURE=no COMPRESS_OUTPUTIMAGE=sha,gpg,img,xz; \
+           ./compile.sh docker BOARD=jethub-j100 LIB_TAG=jethub-repo GPG_PASS=fakepass CLEAN_LEVEL="make,debs,cache" BRANCH=current RELEASE=focal BUILD_MINIMAL=no BUILD_DESKTOP=no KERNEL_ONLY=no KERNEL_CONFIGURE=no COMPRESS_OUTPUTIMAGE=sha,gpg,img,xz; \
+         else \
+           echo "Unexpected tag name format"; \
+           exit 1; \
+         fi
+
+      - name: Upload deb to repo
+        run: rsync -arv --delete-before output/debs/ repo@update.jethome.ru:~/$JETHOME_CI_DEBS_DIR/
+
+      - name: Upload firmware
+        run: |
+         rsync -av output/images/Armbian_*_Jethub-j*_*-burn* --exclude '*.img' repo@update.jethome.ru:/var/www/update.jethome.ru/armbian/$JETHOME_CI_FIRMW_DIR/
