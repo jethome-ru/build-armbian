@@ -1,0 +1,3 @@
+#!/bin/bash
+ADDR=$(grep -o 'mac=[^[:space:]]\+' /proc/cmdline | cut -c 5-)
+[ -n "$ADDR" ] && ip link set dev $1 address $ADDR 
