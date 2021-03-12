@@ -480,11 +480,13 @@ prepare_partitions()
 		check_loop_device "$rootdevice"
 		display_alert "Creating rootfs" "$ROOTFS_TYPE on $rootdevice"
 		mkfs.${mkfs[$ROOTFS_TYPE]} ${mkopts[$ROOTFS_TYPE]} $rootdevice >> "${DEST}"/debug/install.log 2>&1
-		[[ $ROOTFS_TYPE == ext4 ]] && tune2fs -o journal_data_writeback $rootdevice > /dev/null
+		if [[ $ROOTFS_TYPE == ext4 ]]; then
+			tune2fs -o journal_data_writeback $rootdevice > /dev/null || exit_with_error "Unable to tune2fs $rootdevice"
+		fi
 		if [[ $ROOTFS_TYPE == btrfs && $BTRFS_COMPRESSION != none ]]; then
 			local fscreateopt="-o compress-force=${BTRFS_COMPRESSION}"
 		fi
-		mount ${fscreateopt} $rootdevice $MOUNT/
+		mount ${fscreateopt} $rootdevice $MOUNT/ || exit_with_error "Unable to mount \"$rootdevice\" to \"$MOUNT/\""
 		# create fstab (and crypttab) entry
 		if [[ $CRYPTROOT_ENABLE == yes ]]; then
 			# map the LUKS container partition via its UUID to be the 'cryptroot' device
