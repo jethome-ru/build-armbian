@@ -1,12 +1,12 @@
-From cdf108605c33c972bd6715d77cc398368b273cff Mon Sep 17 00:00:00 2001
+From 6c82acc0fc31c7c647ff559a2f5f86d23764bd43 Mon Sep 17 00:00:00 2001
 From: Alex Shevelkin <ash@tvip.ru>
 Date: Sat, 20 Feb 2021 16:38:32 +0300
 Subject: [PATCH] arm64: dts: add meson-axg-jethome-jethub-j100.dtb
 
 ---
  arch/arm64/boot/dts/amlogic/Makefile          |   1 +
- .../amlogic/meson-axg-jethome-jethub-j100.dts | 354 ++++++++++++++++++
- 2 files changed, 355 insertions(+)
+ .../amlogic/meson-axg-jethome-jethub-j100.dts | 355 ++++++++++++++++++
+ 2 files changed, 356 insertions(+)
  create mode 100644 arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
 
 diff --git a/arch/arm64/boot/dts/amlogic/Makefile b/arch/arm64/boot/dts/amlogic/Makefile
@@ -22,10 +22,10 @@ index d7f9c23cd065..d494e54e5fe6 100644
  dtb-$(CONFIG_ARCH_MESON) += meson-g12a-x96-max.dtb
 diff --git a/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
 new file mode 100644
-index 000000000000..a0a904b0af3a
+index 000000000000..1b9edc929e9e
 --- /dev/null
 +++ b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
-@@ -0,0 +1,354 @@
+@@ -0,0 +1,355 @@
 +
 +/dts-v1/;
 +
@@ -38,10 +38,11 @@ index 000000000000..a0a904b0af3a
 +	amlogic-dt-id = "axg_jethubj100_v1";
 +
 +	aliases {
-+                serial0 = &uart_AO;   /* Console */
++		serial0 = &uart_AO;   /* Console */
 +		serial1 = &uart_B;    /* Bluetooth */
 +		serial2 = &uart_AO_B; /* External UART (Wireless Module) */
-+        };
++		ethernet0 = &ethmac;
++	};
 +
 +	chosen {
 +		stdout-path = "serial0:115200n8";
