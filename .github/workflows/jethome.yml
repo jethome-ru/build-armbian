@@ -55,7 +55,26 @@ jobs:
          fi
 
       - name: Upload deb to repo
-        run: rsync -arv --delete-before output/debs/ repo@update.jethome.ru:~/$JETHOME_CI_DEBS_DIR/
+        run: |
+         JETHOME_CI_SYNC_PACKAGES=$(grep -Po "(?<=^$(tr -d '\n' < VERSION) ).+" CHANGELOG_JETHOME_PACKAGES | xargs); \
+         if [[ -z "${JETHOME_CI_SYNC_PACKAGES}" ]]; then \
+           echo "Unexpected empty value in JETHOME_CI_SYNC_PACKAGES"; \
+           exit 1; \
+         elif [[ "${JETHOME_CI_SYNC_PACKAGES}" = "*" ]]; then \
+           echo "rsync all packages..."; \
+           rsync -arv --delete-before output/debs/ repo@update.jethome.ru:~/$JETHOME_CI_DEBS_DIR/; \
+         elif [[ "${JETHOME_CI_SYNC_PACKAGES}" = "-" ]]; then \
+           echo "rsync no any packages..."; \
+         else \
+           echo "rsync specified packages..."
+           unset JETHOME_CI_SYNC_FILTER
+           for JETHOME_CI_PACKAGE in $JETHOME_CI_SYNC_PACKAGES; do \
+             JETHOME_CI_SYNC_FILTER="$JETHOME_CI_SYNC_FILTER --include='*${JETHOME_CI_PACKAGE}'"; \
+           done; \
+           JETHOME_CI_SYNC_FILTER="$JETHOME_CI_SYNC_FILTER --exclude='*.deb'"; \
+           JETHOME_CI_SYNC_ARGS="-arv $JETHOME_CI_SYNC_FILTER --delete-before output/debs/ repo@update.jethome.ru:~/$JETHOME_CI_DEBS_DIR/"; \
+           echo "$JETHOME_CI_SYNC_ARGS" | xargs rsync; \
+         fi;
 
       - name: Upload firmware
         run: |
