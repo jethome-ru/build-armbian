@@ -177,6 +177,13 @@ create_board_package()
 		EOF
 	fi
 
+	if [[ $RELEASE == focal && $BOARDFAMILY == jethub ]]; then
+		cat <<-EOF >> "${destination}"/DEBIAN/postinst
+		rm -f /etc/udev/rules.d/05-jethub-set-mac.rules
+		rm -f /usr/lib/armbian/jethub-set-mac
+		EOF
+	fi
+
 	# install bootscripts if they are not present. Fix upgrades from old images
 	if [[ $FORCE_BOOTSCRIPT_UPDATE == yes ]]; then
 	    cat <<-EOF >> "${destination}"/DEBIAN/postinst
