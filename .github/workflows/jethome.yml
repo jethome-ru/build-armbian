@@ -76,6 +76,10 @@ jobs:
            echo "$JETHOME_CI_SYNC_ARGS" | xargs rsync; \
          fi;
 
+      - name: Upload changelog file
+        run: |
+         rsync -av CHANGELOG_JETHOME.md repo@update.jethome.ru:/var/www/update.jethome.ru/armbian/$JETHOME_CI_FIRMW_DIR/
+
       - name: Upload firmware
         run: |
          rsync -av output/images/Armbian_*_Jethub-j*_*-burn.img.* repo@update.jethome.ru:/var/www/update.jethome.ru/armbian/$JETHOME_CI_FIRMW_DIR/
