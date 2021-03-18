@@ -78,4 +78,4 @@ jobs:
 
       - name: Upload firmware
         run: |
-         rsync -av output/images/Armbian_*_Jethub-j*_*-burn* --exclude '*.img' repo@update.jethome.ru:/var/www/update.jethome.ru/armbian/$JETHOME_CI_FIRMW_DIR/
+         rsync -av output/images/Armbian_*_Jethub-j*_*-burn.img.* repo@update.jethome.ru:/var/www/update.jethome.ru/armbian/$JETHOME_CI_FIRMW_DIR/
