@@ -30,7 +30,7 @@ jobs:
         run: |
          if [[ "$GITHUB_REF" = refs/tags/jethome_release_* ]]; then \
            echo "JETHOME_CI_DEBS_DIR=release_vanilla" >> $GITHUB_ENV; \
-           echo "JETHOME_CI_FIRMW_DIR=" >> $GITHUB_ENV; \
+           echo "JETHOME_CI_FIRMW_DIR=release" >> $GITHUB_ENV; \
          else \
            echo "Unexpected tag name format"; \
            exit 1; \
