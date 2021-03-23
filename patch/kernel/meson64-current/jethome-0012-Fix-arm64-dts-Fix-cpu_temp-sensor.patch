@@ -1,0 +1,42 @@
+From d3a72df8608a51c58bc93d47806001ca60e29776 Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Mon, 22 Mar 2021 14:43:23 +0300
+Subject: [PATCH 12/12] Fix: arm64: dts: Fix cpu_temp sensor
+
+---
+ arch/arm64/boot/dts/amlogic/meson-axg.dtsi | 12 +-----------
+ 1 file changed, 1 insertion(+), 11 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/amlogic/meson-axg.dtsi b/arch/arm64/boot/dts/amlogic/meson-axg.dtsi
+index 7c7c8d882476..849c36db2a74 100644
+--- a/arch/arm64/boot/dts/amlogic/meson-axg.dtsi
++++ b/arch/arm64/boot/dts/amlogic/meson-axg.dtsi
+@@ -112,7 +112,7 @@ thermal-zones {
+ 		cpu_thermal: cpu-thermal {
+ 			polling-delay-passive = <250>;
+ 			polling-delay = <1000>;
+-			thermal-sensors = <&cpu_temp>;
++			thermal-sensors = <&scpi_sensors 0>;
+ 
+ 			trips {
+ 				cpu_passive: cpu-passive {
+@@ -153,16 +153,6 @@ map1 {
+ 		};
+ 	};
+ 
+-	cpu_temp: temperature-sensor@34800 {
+-		compatible = "amlogic,g12a-cpu-thermal",
+-			     "amlogic,g12a-thermal";
+-		reg = <0x0 0x34800 0x0 0x50>;
+-		interrupts = <GIC_SPI 35 IRQ_TYPE_EDGE_RISING>;
+-		clocks = <&clkc CLKID_TS>;
+-		#thermal-sensor-cells = <0>;
+-		amlogic,ao-secure = <&sec_AO>;
+-	};
+-
+ 	sm: secure-monitor {
+ 		compatible = "amlogic,meson-gxbb-sm";
+ 	};
+-- 
+2.25.1
+

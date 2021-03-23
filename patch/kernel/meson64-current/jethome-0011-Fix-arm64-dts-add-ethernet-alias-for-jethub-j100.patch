@@ -1,0 +1,24 @@
+From 94a9d5dd8cee996d95f297c0dc263eee66e04e78 Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Sat, 20 Mar 2021 17:32:23 +0300
+Subject: [PATCH 11/12] Fix: arm64: dts: add ethernet alias for jethub j100
+
+---
+ arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
+index 83b3f86f4936..3a6d2153954b 100644
+--- a/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
++++ b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
+@@ -13,6 +13,7 @@ aliases {
+ 		serial0 = &uart_AO;   /* Console */
+ 		serial1 = &uart_B;    /* Bluetooth */
+ 		serial2 = &uart_AO_B; /* External UART (Wireless Module) */
++		ethernet0 = &ethmac;
+ 	};
+ 
+ 	chosen {
+-- 
+2.25.1
+
