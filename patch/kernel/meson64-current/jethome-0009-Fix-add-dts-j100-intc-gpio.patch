@@ -1,0 +1,54 @@
+From 00777c03afc308e8946f367d360fe2e4c8b6435b Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Sat, 20 Mar 2021 16:36:52 +0300
+Subject: [PATCH 09/12] Fix: add dts j100 intc gpio
+
+---
+ .../boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts | 10 ++++++++++
+ arch/arm64/boot/dts/amlogic/meson-axg.dtsi             |  5 ++++-
+ 2 files changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
+index 3d0e516ad83a..c953190b46c3 100644
+--- a/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
++++ b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
+@@ -352,3 +352,13 @@ &efuse {
+ 	key = <&efusekey>;
+ 	clock-names = "efuse_clk";
+ };
++
++&gpio_intc {
++	compatible ="amlogic,meson-gpio-intc", "amlogic,meson-axg-gpio-intc";
++	status = "okay";
++};
++
++&gpio {
++	interrupts = <0xa IRQ_TYPE_EDGE_RISING>, <0x2b IRQ_TYPE_EDGE_FALLING>, <0x2c IRQ_TYPE_LEVEL_HIGH>, <0x2d IRQ_TYPE_LEVEL_LOW>;
++};
++
+diff --git a/arch/arm64/boot/dts/amlogic/meson-axg.dtsi b/arch/arm64/boot/dts/amlogic/meson-axg.dtsi
+index 6d835d8666f9..26fc8db25271 100644
+--- a/arch/arm64/boot/dts/amlogic/meson-axg.dtsi
++++ b/arch/arm64/boot/dts/amlogic/meson-axg.dtsi
+@@ -321,6 +321,9 @@ gpio: bank@480 {
+ 					      <0x0 0x00430 0x0 0x3c>;
+ 					reg-names = "mux", "pull", "pull-enable", "gpio";
+ 					gpio-controller;
++					interrupt-parent = <&gpio_intc>;
++					interrupt-controller;
++					#interrupt-cells = <2>;
+ 					#gpio-cells = <2>;
+ 					gpio-ranges = <&pinctrl_periphs 0 0 86>;
+ 				};
+@@ -1683,7 +1686,7 @@ reset: reset-controller@1004 {
+ 
+ 			gpio_intc: interrupt-controller@f080 {
+ 				compatible = "amlogic,meson-axg-gpio-intc",
+-					     "amlogic,meson-gpio-intc";
++						"amlogic,meson-gpio-intc";
+ 				reg = <0x0 0xf080 0x0 0x10>;
+ 				interrupt-controller;
+ 				#interrupt-cells = <2>;
+-- 
+2.25.1
+
