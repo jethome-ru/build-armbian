@@ -1,0 +1,86 @@
+From 8196272bd2945473c3acec67141eecdf4cd3e1bd Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Sat, 20 Mar 2021 15:46:53 +0300
+Subject: [PATCH 08/12] Fix: arm64: dts: add thermal zone for axg
+
+---
+ arch/arm64/boot/dts/amlogic/meson-axg.dtsi | 56 ++++++++++++++++++++++
+ 1 file changed, 56 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/amlogic/meson-axg.dtsi b/arch/arm64/boot/dts/amlogic/meson-axg.dtsi
+index c33c2b88c8e9..492161b7a508 100644
+--- a/arch/arm64/boot/dts/amlogic/meson-axg.dtsi
++++ b/arch/arm64/boot/dts/amlogic/meson-axg.dtsi
+@@ -12,6 +12,7 @@
+ #include <dt-bindings/interrupt-controller/arm-gic.h>
+ #include <dt-bindings/reset/amlogic,meson-axg-audio-arb.h>
+ #include <dt-bindings/reset/amlogic,meson-axg-reset.h>
++#include <dt-bindings/thermal/thermal.h>
+ 
+ / {
+ 	compatible = "amlogic,meson-axg";
+@@ -107,6 +108,61 @@ l2: l2-cache0 {
+ 		};
+ 	};
+ 
++	thermal-zones {
++		cpu_thermal: cpu-thermal {
++			polling-delay-passive = <250>;
++			polling-delay = <1000>;
++			thermal-sensors = <&cpu_temp>;
++
++			trips {
++				cpu_passive: cpu-passive {
++					temperature = <70000>; /* millicelsius */
++					hysteresis = <2000>; /* millicelsius */
++					type = "passive";
++				};
++
++				cpu_hot: cpu-hot {
++					temperature = <80000>; /* millicelsius */
++					hysteresis = <2000>; /* millicelsius */
++					type = "hot";
++				};
++
++				cpu_critical: cpu-critical {
++					temperature = <100000>; /* millicelsius */
++					hysteresis = <2000>; /* millicelsius */
++					type = "critical";
++				};
++			};
++		};
++		cpu_cooling_maps: cooling-maps {
++			map0 {
++				trip = <&cpu_passive>;
++				cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			};
++
++			map1 {
++				trip = <&cpu_hot>;
++				cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			};
++		};
++	};
++
++	cpu_temp: temperature-sensor@34800 {
++		compatible = "amlogic,g12a-cpu-thermal",
++			     "amlogic,g12a-thermal";
++		reg = <0x0 0x34800 0x0 0x50>;
++		interrupts = <GIC_SPI 35 IRQ_TYPE_EDGE_RISING>;
++		clocks = <&clkc CLKID_TS>;
++		#thermal-sensor-cells = <0>;
++		amlogic,ao-secure = <&sec_AO>;
++	};
++
+ 	sm: secure-monitor {
+ 		compatible = "amlogic,meson-gxbb-sm";
+ 	};
+-- 
+2.25.1
+

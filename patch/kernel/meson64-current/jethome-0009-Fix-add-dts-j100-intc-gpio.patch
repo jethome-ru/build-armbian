@@ -1,0 +1,40 @@
+From 40ca852b64e0e741e3eb26f9a5dcf45ee3d5cfa5 Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Sat, 20 Mar 2021 16:36:52 +0300
+Subject: [PATCH 09/12] Fix: add dts j100 intc gpio
+
+---
+ .../boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts      | 6 ++++++
+ arch/arm64/boot/dts/amlogic/meson-axg.dtsi                  | 2 +-
+ 2 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
+index 3d0e516ad83a..83b3f86f4936 100644
+--- a/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
++++ b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
+@@ -352,3 +352,9 @@ &efuse {
+ 	key = <&efusekey>;
+ 	clock-names = "efuse_clk";
+ };
++
++&gpio_intc {
++	compatible = "amlogic,meson-axg-gpio-intc",
++		"amlogic,meson-gpio-intc";
++	status = "okay";
++};
+diff --git a/arch/arm64/boot/dts/amlogic/meson-axg.dtsi b/arch/arm64/boot/dts/amlogic/meson-axg.dtsi
+index 492161b7a508..7c7c8d882476 100644
+--- a/arch/arm64/boot/dts/amlogic/meson-axg.dtsi
++++ b/arch/arm64/boot/dts/amlogic/meson-axg.dtsi
+@@ -1689,7 +1689,7 @@ reset: reset-controller@1004 {
+ 
+ 			gpio_intc: interrupt-controller@f080 {
+ 				compatible = "amlogic,meson-axg-gpio-intc",
+-					     "amlogic,meson-gpio-intc";
++						"amlogic,meson-gpio-intc";
+ 				reg = <0x0 0xf080 0x0 0x10>;
+ 				interrupt-controller;
+ 				#interrupt-cells = <2>;
+-- 
+2.25.1
+

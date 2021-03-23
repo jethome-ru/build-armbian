@@ -1,11 +1,13 @@
-From ba8a850577a3c57d43f1f3997c8f5381d5c5a997 Mon Sep 17 00:00:00 2001
-From: Alex Shevelkin <ash@tvip.ru>
-Date: Sat, 20 Feb 2021 15:51:45 +0300
-Subject: [PATCH] brcmfmac: fix not applying 'iw reg set AU'
+From ee6f60b751634084069ef8b1d3a032eafa84264c Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Sat, 20 Mar 2021 15:04:50 +0300
+Subject: [PATCH 07/12] Fix: brcmfmac: fix not applying 'iw reg set AU'. set
+ default to 'AU'
 
 ---
  .../broadcom/brcm80211/brcmfmac/cfg80211.c    | 62 ++++++++++++++-----
- 1 file changed, 45 insertions(+), 17 deletions(-)
+ net/wireless/reg.c                            |  2 +-
+ 2 files changed, 46 insertions(+), 18 deletions(-)
 
 diff --git a/drivers/net/wireless/broadcom/brcm80211/brcmfmac/cfg80211.c b/drivers/net/wireless/broadcom/brcm80211/brcmfmac/cfg80211.c
 index 4b278d2d7b0e..76dca2eb0b63 100644
@@ -99,6 +101,19 @@ index 4b278d2d7b0e..76dca2eb0b63 100644
  	ccreq->country_abbrev[0] = alpha2[0];
  	ccreq->country_abbrev[1] = alpha2[1];
  	ccreq->country_abbrev[2] = 0;
+diff --git a/net/wireless/reg.c b/net/wireless/reg.c
+index 763a45655ac2..d655f65bd7b8 100644
+--- a/net/wireless/reg.c
++++ b/net/wireless/reg.c
+@@ -262,7 +262,7 @@ static const struct ieee80211_regdomain world_regdom = {
+ static const struct ieee80211_regdomain *cfg80211_world_regdom =
+ 	&world_regdom;
+ 
+-static char *ieee80211_regdom = "00";
++static char *ieee80211_regdom = "AU";
+ static char user_alpha2[2];
+ static const struct ieee80211_regdomain *cfg80211_user_regdom;
+ 
 -- 
-2.30.0
+2.25.1
 
