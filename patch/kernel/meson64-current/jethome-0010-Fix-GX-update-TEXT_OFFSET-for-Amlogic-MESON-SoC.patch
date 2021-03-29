@@ -1,4 +1,4 @@
-From a162a7e6f480c27499e80684e392c6aaa7cd61b6 Mon Sep 17 00:00:00 2001
+From 8dfc9f8d6da09f89df88074b2378a81f1c8ec5ec Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Mon, 1 Mar 2021 10:35:21 +0300
 Subject: [PATCH 10/12] Fix: GX: update TEXT_OFFSET for Amlogic MESON SoC
