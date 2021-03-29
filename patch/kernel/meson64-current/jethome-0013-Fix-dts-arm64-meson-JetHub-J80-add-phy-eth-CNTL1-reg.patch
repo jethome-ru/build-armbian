@@ -1,0 +1,29 @@
+From 2754ca76dd27b727ac2d9daa83d42f3bd4288ce4 Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Tue, 30 Mar 2021 14:58:32 +0300
+Subject: [PATCH 13/13] Fix: dts: arm64: meson: JetHub J80 add phy eth CNTL1
+ register and add amlogic,leds property
+
+---
+ .../boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts  | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts b/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts
+index b63c3ee2148d..921a1f1c2b06 100644
+--- a/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts
++++ b/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts
+@@ -275,6 +275,11 @@ &uart_AO {
+ 
+ /* S905X only has access to its internal PHY */
+ &ethmac {
++	reg = <0x0 0xc9410000 0x0 0x10000
++		0x0 0xc8834540 0x0 0x4
++		0x0 0xc8834558 0x0 0xc
++		0x0 0xc1104408 0x0 0x4>;
++	amlogic,eth-leds = <0x41>;
+ 	status = "okay";
+ 	phy-mode = "rmii";
+ 	phy-handle = <&internal_phy>;
+-- 
+2.25.1
+
