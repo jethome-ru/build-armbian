@@ -1,0 +1,126 @@
+From 1799fef143059690ba09fc536d30b52998b8b1c0 Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Sun, 28 Mar 2021 14:48:00 +0300
+Subject: [PATCH 12/12] Feature: amlogic: pick feature from 4.9-amlogic kernel:
+ inverse eth status led
+
+---
+ .../meson-gxl-s905w-jethome-jethub-j80.dts    |  4 ++
+ .../ethernet/stmicro/stmmac/dwmac-meson8b.c   | 57 +++++++++++++++++++
+ 2 files changed, 61 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts b/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts
+index b63c3ee2148d..388dd2a05738 100644
+--- a/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts
++++ b/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts
+@@ -275,6 +275,10 @@ &uart_AO {
+ 
+ /* S905X only has access to its internal PHY */
+ &ethmac {
++	reg = <0x0 0xc9410000 0x0 0x10000
++		0x0 0xc8834540 0x0 0x4
++		0x0 0xc8834558 0x0 0xc
++		0x0 0xc1104408 0x0 0x4>;
+ 	status = "okay";
+ 	phy-mode = "rmii";
+ 	phy-handle = <&internal_phy>;
+diff --git a/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c b/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
+index 6d6bd77bb6af..de9c81669aa2 100644
+--- a/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
++++ b/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
+@@ -47,6 +47,10 @@
+ #define PRG_ETH0_INVERTED_RMII_CLK	BIT(11)
+ #define PRG_ETH0_TX_AND_PHY_REF_CLK	BIT(12)
+ 
++/* invert ethernet led for link status TODO: test*/
++#define PRG_ETH0_INVERTED_LINK_LED BIT(24)
++#define LED_POLARITY  BIT(31)
++
+ /* Bypass (= 0, the signal from the GPIO input directly connects to the
+  * internal sampling) or enable (= 1) the internal logic for RXEN and RXD[3:0]
+  * timing tuning.
+@@ -103,6 +107,8 @@ static void meson8b_dwmac_mask_bits(struct meson8b_dwmac *dwmac, u32 reg,
+ 	data |= (value & mask);
+ 
+ 	writel(data, dwmac->regs + reg);
++	printk("dwmac: %X reg:%X mask:%X value:%X",dwmac->regs,reg,mask,value);
++	printk("dwmac: %x reg:%x mask:%x value:%x",dwmac->regs,reg,mask,value);
+ }
+ 
+ static struct clk *meson8b_dwmac_register_clk(struct meson8b_dwmac *dwmac,
+@@ -267,7 +273,22 @@ static int meson8b_devm_clk_prepare_enable(struct meson8b_dwmac *dwmac,
+ 
+ 	return 0;
+ }
++static int meson8b_init_led_eth(struct meson8b_dwmac *dwmac, void __iomem	*regCNTL)
++{
++	int ret;
++	void __iomem *backup;
++	backup = dwmac->regs;
++	dwmac->regs = regCNTL;
++	/* invert status led TODO */
++	printk("meson8b: set led inversion \n");
++	meson8b_dwmac_mask_bits(dwmac, 0, PRG_ETH0_INVERTED_LINK_LED,
++				PRG_ETH0_INVERTED_LINK_LED);
++	meson8b_dwmac_mask_bits(dwmac, 0, LED_POLARITY, 
++						 LED_POLARITY);
++	dwmac->regs = backup;
++	return 0;
+ 
++}
+ static int meson8b_init_prg_eth(struct meson8b_dwmac *dwmac)
+ {
+ 	u32 tx_dly_config, rx_dly_config, delay_config;
+@@ -366,6 +387,8 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
+ 	struct plat_stmmacenet_data *plat_dat;
+ 	struct stmmac_resources stmmac_res;
+ 	struct meson8b_dwmac *dwmac;
++	void __iomem	*regCNTL;
++
+ 	int ret;
+ 
+ 	ret = stmmac_get_platform_resources(pdev, &stmmac_res);
+@@ -437,6 +460,40 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
+ 	if (ret)
+ 		goto err_remove_config_dt;
+ 
++	/* backport from 4.9 amlogic kernel for led setup */
++	/* ETH_PHY_CNTL1 for internal phy amlogic devices
++	    bits 31:24
++	      bits 7:5 (31:29)
++	        000 - link_led & (~activity)
++	        001 - link_led
++	        010 - link_led & activity
++	        011 - link_led | activity
++	        100 - activity
++	        101 - rx_led
++	        110 - tx_led
++	        111 - duplex_led
++	      bits 4:2 (28:26)
++	        000 - speed100_led
++	        001 - activity & speed100_led
++	        010 - link_led & speed100_led
++	        011 - link_led & activity & speed100_led
++	        100 - speed10_led
++	        101 - activity & speed10_led
++	        110 - link_led & speed10_led
++	        111 - link_led & activity & speed10_led
++	      bit 1
++	        invert co_link_speed_led when output to gpio
++	      bit 0
++	        invert all led signal from phy
++	*/
++	regCNTL  = devm_platform_ioremap_resource(pdev, 2);
++	if (!IS_ERR(regCNTL)) {
++		ret = meson8b_init_led_eth(dwmac, regCNTL);
++		if (ret)
++			printk("meson8b: something wrong with led setup");
++	}
++	/* end led setup */
++
+ 	plat_dat->bsp_priv = dwmac;
+ 
+ 	ret = stmmac_dvr_probe(&pdev->dev, plat_dat, &stmmac_res);
+-- 
+2.25.1
+
