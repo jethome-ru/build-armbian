@@ -6,3 +6,7 @@
 
 ## 20.11.0-trunk.3 (2021-03-29)
 * Fix ethernet led (invert signal from phy)
+
+## 20.11.0-trunk.4 (2021-04-13)
+* Add gpio irq for JetHub D1 (j100)
+* Add delay on eth phy reset for JetHub D1 (j100)
