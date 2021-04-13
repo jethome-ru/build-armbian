@@ -1,7 +1,7 @@
 From 00777c03afc308e8946f367d360fe2e4c8b6435b Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Sat, 20 Mar 2021 16:36:52 +0300
-Subject: [PATCH 09/12] Fix: add dts j100 intc gpio
+Subject: [PATCH 09/15] Fix: add dts j100 intc gpio
 
 ---
  .../boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts | 10 ++++++++++

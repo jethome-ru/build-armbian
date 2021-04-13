@@ -1,7 +1,7 @@
 From c6aa2aace6c6b0644e588d802350b66a8c901db8 Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Sat, 20 Mar 2021 14:23:36 +0300
-Subject: [PATCH 02/12] arm64: dts: add meson-axg-jethome-jethub-j100.dts
+Subject: [PATCH 02/15] arm64: dts: add meson-axg-jethome-jethub-j100.dts
 
 ---
  arch/arm64/boot/dts/amlogic/Makefile          |   1 +
