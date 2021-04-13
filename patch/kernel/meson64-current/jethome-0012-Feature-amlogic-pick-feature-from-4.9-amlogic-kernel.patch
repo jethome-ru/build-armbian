@@ -1,7 +1,7 @@
 From f10a06fa5155a33171be2e2a618956178d2abe1c Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Sun, 28 Mar 2021 14:48:00 +0300
-Subject: [PATCH 12/13] Feature: amlogic: pick feature from 4.9-amlogic kernel:
+Subject: [PATCH 12/15] Feature: amlogic: pick feature from 4.9-amlogic kernel:
  inverse eth status led
 
 ---

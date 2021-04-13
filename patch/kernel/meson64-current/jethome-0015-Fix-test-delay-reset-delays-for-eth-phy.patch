@@ -1,0 +1,35 @@
+From 83a62d1d6b11510699aca5affb0279d05b8d2a64 Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Mon, 12 Apr 2021 20:45:09 +0300
+Subject: [PATCH 15/15] Fix: test delay&reset delays for eth phy
+
+---
+ .../arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
+index a9b03f46d86b..d118e7ef6400 100644
+--- a/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
++++ b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
+@@ -209,6 +209,9 @@ &ethmac {
+ 	phy-mode = "rmii";
+ 	internal_phy=<0>;
+ 	interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
++/*	snps,reset-gpio = <&gpio GPIOZ_5 0>;
++	snps,reset-delays-us = <0 10000 1000000>;
++	snps,reset-active-low;*/
+ 
+ 	mdio {
+ 		compatible = "snps,dwmac-mdio";
+@@ -222,7 +225,7 @@ eth_phy0: ethernet-phy@0 {
+ 			reg = <0>;
+ 
+ 			reset-assert-us = <10000>;
+-			reset-deassert-us = <10000>;
++			reset-deassert-us = <80000>;
+ 			reset-gpios = <&gpio GPIOZ_5 GPIO_ACTIVE_LOW>;
+ 		};
+ 	};
+-- 
+2.25.1
+
