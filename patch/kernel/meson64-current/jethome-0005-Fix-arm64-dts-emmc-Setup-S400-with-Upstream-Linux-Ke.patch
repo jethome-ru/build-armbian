@@ -1,7 +1,7 @@
 From c07aa623e60d7845e6fc22342824be14c5bfc6da Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Mon, 1 Mar 2021 09:22:41 +0300
-Subject: [PATCH 05/14] Fix: arm64: dts:emmc: Setup S400 with Upstream Linux
+Subject: [PATCH 05/16] Fix: arm64: dts:emmc: Setup S400 with Upstream Linux
  Kernel
 
 ---

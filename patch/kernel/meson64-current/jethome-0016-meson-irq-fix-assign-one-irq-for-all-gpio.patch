@@ -1,0 +1,26 @@
+From 2dd55d35e60dcedf9e26e6a992206e237a093594 Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Wed, 21 Apr 2021 10:43:30 +0300
+Subject: [PATCH 16/16] meson: irq: fix assign one irq for all gpio
+
+---
+ drivers/pinctrl/meson/pinctrl-meson.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/pinctrl/meson/pinctrl-meson.c b/drivers/pinctrl/meson/pinctrl-meson.c
+index 5263fed788f1..1f24434b6d88 100644
+--- a/drivers/pinctrl/meson/pinctrl-meson.c
++++ b/drivers/pinctrl/meson/pinctrl-meson.c
+@@ -618,7 +618,8 @@ static int meson_gpio_to_irq(struct gpio_chip *chip, unsigned int gpio)
+ 		return -EINVAL;
+ 	}
+ 
+-	hwirq = gpio - bank->first + bank->irq_first;
++	//hwirq = gpio - bank->first + bank->irq_first;
++	hwirq = bank->irq_first;
+ 	printk("gpio irq setup: hwirq: 0x%X irqfirst: 0x%X irqlast: 0x%X pin[%d]\n", hwirq, bank->irq_first, bank->irq_last, gpio);
+ 	if (hwirq > bank->irq_last)
+ 	{
+-- 
+2.25.1
+

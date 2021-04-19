@@ -1,16 +1,16 @@
-From c439f8feec0d57bccf5de31b357b394825efbbcf Mon Sep 17 00:00:00 2001
+From ae4cdd999d7b1069841fd8267c1e3a4d3c5ca46c Mon Sep 17 00:00:00 2001
 From: usera <adeep@lexina.in>
 Date: Mon, 12 Apr 2021 17:16:42 +0300
-Subject: [PATCH 14/14] Fix:meson64: add gpio irq (patch from
+Subject: [PATCH 14/16] Fix:meson64: add gpio irq (patch from
  https://lkml.org/lkml/2020/11/27/8)
 
 ---
- drivers/pinctrl/meson/pinctrl-meson.c | 35 +++++++++++++++++++++++++++
+ drivers/pinctrl/meson/pinctrl-meson.c | 41 +++++++++++++++++++++++++++
  drivers/pinctrl/meson/pinctrl-meson.h |  1 +
- 2 files changed, 36 insertions(+)
+ 2 files changed, 42 insertions(+)
 
 diff --git a/drivers/pinctrl/meson/pinctrl-meson.c b/drivers/pinctrl/meson/pinctrl-meson.c
-index 20683cd072bb..c6c6c5f36d19 100644
+index 20683cd072bb..5263fed788f1 100644
 --- a/drivers/pinctrl/meson/pinctrl-meson.c
 +++ b/drivers/pinctrl/meson/pinctrl-meson.c
 @@ -51,6 +51,7 @@
@@ -21,7 +21,7 @@ index 20683cd072bb..c6c6c5f36d19 100644
  
  #include "../core.h"
  #include "../pinctrl-utils.h"
-@@ -598,6 +599,34 @@ static int meson_gpio_get(struct gpio_chip *chip, unsigned gpio)
+@@ -598,6 +599,40 @@ static int meson_gpio_get(struct gpio_chip *chip, unsigned gpio)
  	return !!(val & BIT(bit));
  }
  
@@ -29,7 +29,7 @@ index 20683cd072bb..c6c6c5f36d19 100644
 +{
 +	struct meson_pinctrl *pc = gpiochip_get_data(chip);
 +	struct meson_bank *bank;
-+	 struct irq_fwspec fwspec;
++	struct irq_fwspec fwspec;
 +	int hwirq;
 +
 +	if (meson_get_bank(pc, gpio, &bank))
@@ -45,6 +45,12 @@ index 20683cd072bb..c6c6c5f36d19 100644
 +	}
 +
 +	hwirq = gpio - bank->first + bank->irq_first;
++	printk("gpio irq setup: hwirq: 0x%X irqfirst: 0x%X irqlast: 0x%X pin[%d]\n", hwirq, bank->irq_first, bank->irq_last, gpio);
++	if (hwirq > bank->irq_last)
++	{
++		dev_warn(pc->dev, "no more irq for pin[%d]\n", gpio);
++		return -EINVAL;
++	}
 +	fwspec.fwnode = of_node_to_fwnode(pc->of_irq);
 +	fwspec.param_count = 2;
 +	fwspec.param[0] = hwirq;
@@ -56,7 +62,7 @@ index 20683cd072bb..c6c6c5f36d19 100644
  static int meson_gpiolib_register(struct meson_pinctrl *pc)
  {
  	int ret;
-@@ -612,6 +641,7 @@ static int meson_gpiolib_register(struct meson_pinctrl *pc)
+@@ -612,6 +647,7 @@ static int meson_gpiolib_register(struct meson_pinctrl *pc)
  	pc->chip.direction_output = meson_gpio_direction_output;
  	pc->chip.get = meson_gpio_get;
  	pc->chip.set = meson_gpio_set;
@@ -64,7 +70,7 @@ index 20683cd072bb..c6c6c5f36d19 100644
  	pc->chip.base = -1;
  	pc->chip.ngpio = pc->data->num_pins;
  	pc->chip.can_sleep = false;
-@@ -682,6 +712,11 @@ static int meson_pinctrl_parse_dt(struct meson_pinctrl *pc,
+@@ -682,6 +718,11 @@ static int meson_pinctrl_parse_dt(struct meson_pinctrl *pc,
  
  	pc->of_node = gpio_np;
  

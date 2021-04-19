@@ -1,28 +1,54 @@
-From f10a06fa5155a33171be2e2a618956178d2abe1c Mon Sep 17 00:00:00 2001
+From 88c7a72cc8732ba2651b98221e07a62fe4c05a21 Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Sun, 28 Mar 2021 14:48:00 +0300
-Subject: [PATCH 12/14] Feature: amlogic: pick feature from 4.9-amlogic kernel:
+Subject: [PATCH 12/16] Feature: amlogic: pick feature from 4.9-amlogic kernel:
  inverse eth status led
 
 ---
- .../ethernet/stmicro/stmmac/dwmac-meson8b.c   | 53 +++++++++++++++++++
- 1 file changed, 53 insertions(+)
+ .../ethernet/stmicro/stmmac/dwmac-meson8b.c   | 61 +++++++++++++++++++
+ 1 file changed, 61 insertions(+)
 
 diff --git a/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c b/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
-index 6d6bd77bb6af..be34b382d8a8 100644
+index 6d6bd77bb6af..6ac942a31de8 100644
 --- a/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
 +++ b/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
-@@ -267,7 +267,17 @@ static int meson8b_devm_clk_prepare_enable(struct meson8b_dwmac *dwmac,
+@@ -23,6 +23,8 @@
+ 
+ #define PRG_ETH0			0x0
+ 
++#define ETH_PHY_CNTL1 0x0
++
+ #define PRG_ETH0_RGMII_MODE		BIT(0)
+ 
+ #define PRG_ETH0_EXT_PHY_MODE_MASK	GENMASK(2, 0)
+@@ -97,12 +99,15 @@ static void meson8b_dwmac_mask_bits(struct meson8b_dwmac *dwmac, u32 reg,
+ 				    u32 mask, u32 value)
+ {
+ 	u32 data;
++	u32 data2;
+ 
+ 	data = readl(dwmac->regs + reg);
++	data2 = data;
+ 	data &= ~mask;
+ 	data |= (value & mask);
+ 
+ 	writel(data, dwmac->regs + reg);
++	printk("dwmac: mask_bits: value:0x%X mask:0x%X data:0x%X old data:0x%X",value, mask, data, data2);
+ }
+ 
+ static struct clk *meson8b_dwmac_register_clk(struct meson8b_dwmac *dwmac,
+@@ -267,7 +272,18 @@ static int meson8b_devm_clk_prepare_enable(struct meson8b_dwmac *dwmac,
  
  	return 0;
  }
 +static int meson8b_init_led_eth(struct meson8b_dwmac *dwmac, void __iomem *regCNTL, u32 leds)
 +{
-+	int ret;
 +	void __iomem *backup;
++	u32 mask=0xFF;
 +	backup = dwmac->regs;
 +	dwmac->regs = regCNTL;
-+	meson8b_dwmac_mask_bits(dwmac, 0, 0xff << 24, leds);
++	printk("dwmac: init_led: exec mask_bits: %X %X reg:0x%X offset:0x%X",mask, leds, regCNTL, ETH_PHY_CNTL1);
++	meson8b_dwmac_mask_bits(dwmac, ETH_PHY_CNTL1, mask << 24, leds << 24);
 +	dwmac->regs = backup;
 +	return 0;
  
@@ -30,7 +56,7 @@ index 6d6bd77bb6af..be34b382d8a8 100644
  static int meson8b_init_prg_eth(struct meson8b_dwmac *dwmac)
  {
  	u32 tx_dly_config, rx_dly_config, delay_config;
-@@ -366,6 +376,9 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
+@@ -366,6 +382,9 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
  	struct plat_stmmacenet_data *plat_dat;
  	struct stmmac_resources stmmac_res;
  	struct meson8b_dwmac *dwmac;
@@ -40,7 +66,7 @@ index 6d6bd77bb6af..be34b382d8a8 100644
  	int ret;
  
  	ret = stmmac_get_platform_resources(pdev, &stmmac_res);
-@@ -437,6 +450,46 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
+@@ -437,6 +456,48 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
  	if (ret)
  		goto err_remove_config_dt;
  
@@ -73,9 +99,11 @@ index 6d6bd77bb6af..be34b382d8a8 100644
 +	if (!of_property_read_u32(pdev->dev.of_node, "amlogic,eth-leds",
 +		 &eth_leds))
 +	{
++		eth_leds = eth_leds & 0xFF;
 +		regCNTL  = devm_platform_ioremap_resource(pdev, 2);
 +		if (!IS_ERR(regCNTL)) {
-+			ret = meson8b_init_led_eth(dwmac, regCNTL, eth_leds << 24);
++			printk("dwmac: led set reg: %X value %X",regCNTL, eth_leds);
++			ret = meson8b_init_led_eth(dwmac, regCNTL, eth_leds);
 +			if (ret)
 +				dev_info(&pdev->dev, "Something wrong with led setup\n");
 +			else
