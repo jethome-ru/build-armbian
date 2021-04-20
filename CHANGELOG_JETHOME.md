@@ -10,3 +10,7 @@
 ## 20.11.0-trunk.4 (2021-04-13)
 * Add gpio irq for JetHub D1 (j100)
 * Add delay on eth phy reset for JetHub D1 (j100)
+
+## 20.11.0-trunk.5 (2021-04-20)
+* Fix eth phy on JetHub H1 (j80)
+* Change gpio irq assign to one irq for all gpio
