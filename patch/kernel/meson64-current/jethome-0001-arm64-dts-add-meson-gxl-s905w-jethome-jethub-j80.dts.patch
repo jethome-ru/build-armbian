@@ -1,7 +1,7 @@
 From 76a3eef4396d1cdd0dc1304e3b7a3fae3568d03c Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Sat, 20 Mar 2021 14:13:29 +0300
-Subject: [PATCH 01/16] arm64: dts: add meson-gxl-s905w-jethome-jethub-j80.dts
+Subject: [PATCH 01/15] arm64: dts: add meson-gxl-s905w-jethome-jethub-j80.dts
 
 ---
  arch/arm64/boot/dts/amlogic/Makefile          |   1 +
