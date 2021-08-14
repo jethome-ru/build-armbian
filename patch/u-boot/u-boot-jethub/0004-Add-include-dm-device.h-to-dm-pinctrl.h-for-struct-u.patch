@@ -1,0 +1,27 @@
+From f7b633032a8c9550bd560fb1fd947d7af3cbcde7 Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Wed, 9 Jun 2021 13:56:27 +0300
+Subject: [PATCH 04/11] Add include <dm/device.h> to dm/pinctrl.h for "struct
+ udevice"
+
+Signed-off-by: Vyacheslav Bocharov <devel@lexina.in>
+---
+ include/dm/pinctrl.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/include/dm/pinctrl.h b/include/dm/pinctrl.h
+index 1bdc8d3cbd7..8c84847403c 100644
+--- a/include/dm/pinctrl.h
++++ b/include/dm/pinctrl.h
+@@ -6,6 +6,8 @@
+ #ifndef __PINCTRL_H
+ #define __PINCTRL_H
+ 
++#include <dm/device.h>
++
+ #define PINNAME_SIZE	10
+ #define PINMUX_SIZE	40
+ 
+-- 
+2.30.2
+

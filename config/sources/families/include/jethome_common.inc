@@ -39,15 +39,15 @@ esac
 case $BRANCH in
 	legacy)
         KERNELBRANCH='branch:linux-5.9.y'
-        KERNELPATCHDIR='jethome-legacy'
+        KERNELPATCHDIR='jethub-legacy'
 	;;
     current)
         KERNELBRANCH='branch:linux-5.10.y'
-        KERNELPATCHDIR='jethome-current'
+        KERNELPATCHDIR='jethub-current'
     ;;
     edge)
 		KERNELBRANCH='branch:linux-5.13.y'
-		KERNELPATCHDIR='jethome-edge'
+		KERNELPATCHDIR='jethub-edge'
     ;;
 esac
 

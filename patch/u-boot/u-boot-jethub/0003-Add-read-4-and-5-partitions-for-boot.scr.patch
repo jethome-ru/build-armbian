@@ -1,0 +1,26 @@
+From dc8145aa1e429b2a4b9780317fcc52cc48af3494 Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Wed, 9 Jun 2021 13:52:26 +0300
+Subject: [PATCH 03/11] Add read 4 and 5 partitions for boot.scr
+
+Signed-off-by: Vyacheslav Bocharov <devel@lexina.in>
+---
+ include/config_distro_bootcmd.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/config_distro_bootcmd.h b/include/config_distro_bootcmd.h
+index 2627c2a6a54..c0940368bc4 100644
+--- a/include/config_distro_bootcmd.h
++++ b/include/config_distro_bootcmd.h
+@@ -477,7 +477,7 @@
+ 	\
+ 	"scan_dev_for_boot_part="                                         \
+ 		"part list ${devtype} ${devnum} -bootable devplist; "     \
+-		"env exists devplist || setenv devplist 1; "              \
++		"env exists devplist || setenv devplist 1 4 5; "          \
+ 		"for distro_bootpart in ${devplist}; do "                 \
+ 			"if fstype ${devtype} "                           \
+ 					"${devnum}:${distro_bootpart} "   \
+-- 
+2.30.2
+

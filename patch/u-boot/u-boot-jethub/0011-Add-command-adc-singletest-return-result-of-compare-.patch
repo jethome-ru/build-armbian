@@ -1,0 +1,86 @@
+From d07421e4ddc1711cbedc7443aa188fd61b4890ca Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Sat, 14 Aug 2021 13:48:41 +0300
+Subject: [PATCH 11/11] Add command "adc singletest" - return result of compare
+ adc input with value
+
+---
+ cmd/adc.c                       | 27 ++++++++++++++++++++++++++-
+ configs/jethub_j80_v1_defconfig |  5 ++++-
+ 2 files changed, 30 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/adc.c b/cmd/adc.c
+index bf91cd80dfc..0a98926d178 100644
+--- a/cmd/adc.c
++++ b/cmd/adc.c
+@@ -92,9 +92,32 @@ static int do_adc_single(struct cmd_tbl *cmdtp, int flag, int argc,
+ 	else
+ 		printf("%u\n", data);
+ 
+-	return data;
++	return ret;
+ }
+ 
++static int do_adc_single_test(struct cmd_tbl *cmdtp, int flag, int argc,
++			 char *const argv[])
++{
++	struct udevice *dev;
++	unsigned int data;
++	int ret, uV, val;
++
++	if (argc < 4)
++		return CMD_RET_USAGE;
++
++	val = simple_strtol(argv[3], NULL, 0);
++	ret = adc_channel_single_shot(argv[1], simple_strtol(argv[2], NULL, 0),
++				      &data);
++	if (ret) {
++		printf("Error getting single shot for device %s channel %s\n",
++		       argv[1], argv[2]);
++		return CMD_RET_FAILURE;
++	}
++
++	return data > val;
++}
++
++
+ static int do_adc_scan(struct cmd_tbl *cmdtp, int flag, int argc,
+ 		       char *const argv[])
+ {
+@@ -150,10 +173,12 @@ static char adc_help_text[] =
+ 	"list - list ADC devices\n"
+ 	"adc info <name> - Get ADC device info\n"
+ 	"adc single <name> <channel> - Get Single data of ADC device channel\n"
++	"adc singletest <name> <channel> <val> - Return result of check (adc channel value > val), on error return 1\n"
+ 	"adc scan <name> [channel mask] - Scan all [or masked] ADC channels";
+ 
+ U_BOOT_CMD_WITH_SUBCMDS(adc, "ADC sub-system", adc_help_text,
+ 	U_BOOT_SUBCMD_MKENT(list, 1, 1, do_adc_list),
+ 	U_BOOT_SUBCMD_MKENT(info, 2, 1, do_adc_info),
+ 	U_BOOT_SUBCMD_MKENT(single, 3, 1, do_adc_single),
++	U_BOOT_SUBCMD_MKENT(singletest, 4, 1, do_adc_single_test),
+ 	U_BOOT_SUBCMD_MKENT(scan, 3, 1, do_adc_scan));
+diff --git a/configs/jethub_j80_v1_defconfig b/configs/jethub_j80_v1_defconfig
+index 97efe13b952..7d98730e3a9 100644
+--- a/configs/jethub_j80_v1_defconfig
++++ b/configs/jethub_j80_v1_defconfig
+@@ -1,5 +1,5 @@
+ CONFIG_ARM=y
+-CONFIG_SYS_BOARD="jethub-h1"
++CONFIG_SYS_BOARD="jethub-j80"
+ CONFIG_ARCH_MESON=y
+ CONFIG_SYS_TEXT_BASE=0x01000000
+ CONFIG_NR_DRAM_BANKS=1
+@@ -52,6 +52,9 @@ CONFIG_USB_DWC3=y
+ CONFIG_USB_DWC3_MESON_GXL=y
+ CONFIG_OF_LIBFDT_OVERLAY=y
+ 
++CONFIG_CMD_ADC=y
++CONFIG_SARADC_MESON=y
++
+ # AML
+ CONFIG_DM_MMC=y
+ CONFIG_AML_GPT=y
+-- 
+2.30.2
+

@@ -1,0 +1,29 @@
+From b918a73788f19080395b0b2a253bcfbf559b503b Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Wed, 11 Aug 2021 13:07:46 +0300
+Subject: [PATCH 6/6] Add bluetooth node for RTL8822CS uart port
+ (https://mjmwired.net/kernel/Documentation/devicetree/bindings/net/realtek-bluetooth.yaml)
+
+Signed-off-by: Vyacheslav Bocharov <devel@lexina.in>
+---
+ .../boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts   | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts b/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts
+index 70651c28fdc9..d90e7259d9ad 100644
+--- a/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts
++++ b/arch/arm64/boot/dts/amlogic/meson-gxl-s905w-jethome-jethub-j80.dts
+@@ -295,6 +295,10 @@ &uart_A {
+ 	status = "okay";
+ 	pinctrl-0 = <&uart_a_pins>, <&uart_a_cts_rts_pins>;
+ 	pinctrl-names = "default";
++	uart-has-rtscts;
++	bluetooth {
++		compatible = "realtek,rtl8822cs-bt";
++	};
+ };
+ 
+ &uart_C {
+-- 
+2.30.2
+

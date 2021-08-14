@@ -1,0 +1,169 @@
+From b1cf1927d304cf462e54c11870e4a8681a21438d Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Sat, 14 Aug 2021 13:47:09 +0300
+Subject: [PATCH 10/11] Rename jethub configs d1 -> j100, d2 -> j200, h1 -> j80
+
+---
+ board/amlogic/jethub-d2/MAINTAINERS                      | 9 ---------
+ board/amlogic/{jethub-d1 => jethub-j100}/MAINTAINERS     | 4 ++--
+ board/amlogic/{jethub-h1 => jethub-j100}/Makefile        | 2 +-
+ board/amlogic/{jethub-d1 => jethub-j100}/checkhw.c       | 0
+ .../{jethub-d1/jethub-d1.c => jethub-j100/jethub-j100.c} | 0
+ board/amlogic/jethub-j200/MAINTAINERS                    | 6 ++++++
+ board/amlogic/{jethub-d2 => jethub-j200}/Makefile        | 2 +-
+ .../{jethub-d2/jethub-d2.c => jethub-j200/jethub-j200.c} | 0
+ board/amlogic/{jethub-h1 => jethub-j80}/MAINTAINERS      | 4 ++--
+ board/amlogic/{jethub-d1 => jethub-j80}/Makefile         | 2 +-
+ board/amlogic/{jethub-h1 => jethub-j80}/checkhw.c        | 0
+ .../{jethub-h1/jethub-h1.c => jethub-j80/jethub-j80.c}   | 0
+ .../{jethub_d1_v1_defconfig => jethub_j100_v1_defconfig} | 0
+ .../{jethub_d2_v1_defconfig => jethub_j200_v1_defconfig} | 0
+ .../{jethub_h1_v1_defconfig => jethub_j80_v1_defconfig}  | 0
+ 15 files changed, 13 insertions(+), 16 deletions(-)
+ delete mode 100644 board/amlogic/jethub-d2/MAINTAINERS
+ rename board/amlogic/{jethub-d1 => jethub-j100}/MAINTAINERS (62%)
+ rename board/amlogic/{jethub-h1 => jethub-j100}/Makefile (77%)
+ rename board/amlogic/{jethub-d1 => jethub-j100}/checkhw.c (100%)
+ rename board/amlogic/{jethub-d1/jethub-d1.c => jethub-j100/jethub-j100.c} (100%)
+ create mode 100644 board/amlogic/jethub-j200/MAINTAINERS
+ rename board/amlogic/{jethub-d2 => jethub-j200}/Makefile (84%)
+ rename board/amlogic/{jethub-d2/jethub-d2.c => jethub-j200/jethub-j200.c} (100%)
+ rename board/amlogic/{jethub-h1 => jethub-j80}/MAINTAINERS (61%)
+ rename board/amlogic/{jethub-d1 => jethub-j80}/Makefile (78%)
+ rename board/amlogic/{jethub-h1 => jethub-j80}/checkhw.c (100%)
+ rename board/amlogic/{jethub-h1/jethub-h1.c => jethub-j80/jethub-j80.c} (100%)
+ rename configs/{jethub_d1_v1_defconfig => jethub_j100_v1_defconfig} (100%)
+ rename configs/{jethub_d2_v1_defconfig => jethub_j200_v1_defconfig} (100%)
+ rename configs/{jethub_h1_v1_defconfig => jethub_j80_v1_defconfig} (100%)
+
+diff --git a/board/amlogic/jethub-d2/MAINTAINERS b/board/amlogic/jethub-d2/MAINTAINERS
+deleted file mode 100644
+index 77f77463460..00000000000
+--- a/board/amlogic/jethub-d2/MAINTAINERS
++++ /dev/null
+@@ -1,9 +0,0 @@
+-ODROID-N2
+-M:	Neil Armstrong <narmstrong@baylibre.com>
+-S:	Maintained
+-L:	u-boot-amlogic@groups.io
+-F:	board/amlogic/odroid-n2/
+-F:	configs/odroid-n2_defconfig
+-F:	configs/odroid-c4_defconfig
+-F:	doc/board/amlogic/odroid-n2.rst
+-F:	doc/board/amlogic/odroid-c4.rst
+diff --git a/board/amlogic/jethub-d1/MAINTAINERS b/board/amlogic/jethub-j100/MAINTAINERS
+similarity index 62%
+rename from board/amlogic/jethub-d1/MAINTAINERS
+rename to board/amlogic/jethub-j100/MAINTAINERS
+index 0a67e1e8564..67633f59512 100644
+--- a/board/amlogic/jethub-d1/MAINTAINERS
++++ b/board/amlogic/jethub-j100/MAINTAINERS
+@@ -2,5 +2,5 @@ JetHome JetHub D1 (J100)
+ M:	Vyacheslav Bocharov <devel@lexina.in>
+ S:	Maintained
+ L:	u-boot-amlogic@groups.io
+-F:	board/amlogic/jethub-d1/
+-F:	configs/jethub-d1_defconfig
++F:	board/amlogic/jethub-j100/
++F:	configs/jethub_j100_v1_defconfig
+diff --git a/board/amlogic/jethub-h1/Makefile b/board/amlogic/jethub-j100/Makefile
+similarity index 77%
+rename from board/amlogic/jethub-h1/Makefile
+rename to board/amlogic/jethub-j100/Makefile
+index fd9af28b94a..c40ef945779 100644
+--- a/board/amlogic/jethub-h1/Makefile
++++ b/board/amlogic/jethub-j100/Makefile
+@@ -3,4 +3,4 @@
+ # (C) Copyright 2021 JetHome
+ # Author: Vyacheslav Bocharov <devel@lexina.in>
+ 
+-obj-y	:= jethub-h1.o checkhw.o
++obj-y	:= jethub-j100.o checkhw.o
+diff --git a/board/amlogic/jethub-d1/checkhw.c b/board/amlogic/jethub-j100/checkhw.c
+similarity index 100%
+rename from board/amlogic/jethub-d1/checkhw.c
+rename to board/amlogic/jethub-j100/checkhw.c
+diff --git a/board/amlogic/jethub-d1/jethub-d1.c b/board/amlogic/jethub-j100/jethub-j100.c
+similarity index 100%
+rename from board/amlogic/jethub-d1/jethub-d1.c
+rename to board/amlogic/jethub-j100/jethub-j100.c
+diff --git a/board/amlogic/jethub-j200/MAINTAINERS b/board/amlogic/jethub-j200/MAINTAINERS
+new file mode 100644
+index 00000000000..cd9b3592811
+--- /dev/null
++++ b/board/amlogic/jethub-j200/MAINTAINERS
+@@ -0,0 +1,6 @@
++JetHome JetHub D2 (J200)
++M:	Vyacheslav Bocharov <devel@lexina.in>
++S:	Maintained
++L:	u-boot-amlogic@groups.io
++F:	board/amlogic/jethub-j200/
++F:	configs/jethub_j200_v1_defconfig
+diff --git a/board/amlogic/jethub-d2/Makefile b/board/amlogic/jethub-j200/Makefile
+similarity index 84%
+rename from board/amlogic/jethub-d2/Makefile
+rename to board/amlogic/jethub-j200/Makefile
+index d12e0d3bca4..6cc7d45d8f1 100644
+--- a/board/amlogic/jethub-d2/Makefile
++++ b/board/amlogic/jethub-j200/Makefile
+@@ -3,4 +3,4 @@
+ # (C) Copyright 2020 BayLibre, SAS
+ # Author: Neil Armstrong <narmstrong@baylibre.com>
+ 
+-obj-y	:= jethub-d2.o
++obj-y	:= jethub-j200.o
+diff --git a/board/amlogic/jethub-d2/jethub-d2.c b/board/amlogic/jethub-j200/jethub-j200.c
+similarity index 100%
+rename from board/amlogic/jethub-d2/jethub-d2.c
+rename to board/amlogic/jethub-j200/jethub-j200.c
+diff --git a/board/amlogic/jethub-h1/MAINTAINERS b/board/amlogic/jethub-j80/MAINTAINERS
+similarity index 61%
+rename from board/amlogic/jethub-h1/MAINTAINERS
+rename to board/amlogic/jethub-j80/MAINTAINERS
+index 6cc1753d18f..e0fb95e6fe1 100644
+--- a/board/amlogic/jethub-h1/MAINTAINERS
++++ b/board/amlogic/jethub-j80/MAINTAINERS
+@@ -2,5 +2,5 @@ JetHome JetHub J80
+ M:	Vyacheslav Bocharov <devel@lexina.in>
+ S:	Maintained
+ L:	u-boot-amlogic@groups.io
+-F:	board/amlogic/jethub-h1/
+-F:	configs/jethub-h1_defconfig
++F:	board/amlogic/jethub-j80/
++F:	configs/jethub_j80_v1_defconfig
+diff --git a/board/amlogic/jethub-d1/Makefile b/board/amlogic/jethub-j80/Makefile
+similarity index 78%
+rename from board/amlogic/jethub-d1/Makefile
+rename to board/amlogic/jethub-j80/Makefile
+index 17d84dd5aae..19d2f576052 100644
+--- a/board/amlogic/jethub-d1/Makefile
++++ b/board/amlogic/jethub-j80/Makefile
+@@ -3,4 +3,4 @@
+ # (C) Copyright 2021 JetHome
+ # Author: Vyacheslav Bocharov <devel@lexina.in>
+ 
+-obj-y	:= jethub-d1.o checkhw.o
++obj-y	:= jethub-j80.o checkhw.o
+diff --git a/board/amlogic/jethub-h1/checkhw.c b/board/amlogic/jethub-j80/checkhw.c
+similarity index 100%
+rename from board/amlogic/jethub-h1/checkhw.c
+rename to board/amlogic/jethub-j80/checkhw.c
+diff --git a/board/amlogic/jethub-h1/jethub-h1.c b/board/amlogic/jethub-j80/jethub-j80.c
+similarity index 100%
+rename from board/amlogic/jethub-h1/jethub-h1.c
+rename to board/amlogic/jethub-j80/jethub-j80.c
+diff --git a/configs/jethub_d1_v1_defconfig b/configs/jethub_j100_v1_defconfig
+similarity index 100%
+rename from configs/jethub_d1_v1_defconfig
+rename to configs/jethub_j100_v1_defconfig
+diff --git a/configs/jethub_d2_v1_defconfig b/configs/jethub_j200_v1_defconfig
+similarity index 100%
+rename from configs/jethub_d2_v1_defconfig
+rename to configs/jethub_j200_v1_defconfig
+diff --git a/configs/jethub_h1_v1_defconfig b/configs/jethub_j80_v1_defconfig
+similarity index 100%
+rename from configs/jethub_h1_v1_defconfig
+rename to configs/jethub_j80_v1_defconfig
+-- 
+2.30.2
+

@@ -1,0 +1,25 @@
+From f10b53778b21da102d099e210cc72cc0a06b7602 Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <devel@lexina.in>
+Date: Sun, 8 Aug 2021 14:49:19 +0300
+Subject: [PATCH 09/11] Fix command adc single to return data value
+
+---
+ cmd/adc.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/cmd/adc.c b/cmd/adc.c
+index 16f914a030e..bf91cd80dfc 100644
+--- a/cmd/adc.c
++++ b/cmd/adc.c
+@@ -92,7 +92,7 @@ static int do_adc_single(struct cmd_tbl *cmdtp, int flag, int argc,
+ 	else
+ 		printf("%u\n", data);
+ 
+-	return CMD_RET_SUCCESS;
++	return data;
+ }
+ 
+ static int do_adc_scan(struct cmd_tbl *cmdtp, int flag, int argc,
+-- 
+2.30.2
+
