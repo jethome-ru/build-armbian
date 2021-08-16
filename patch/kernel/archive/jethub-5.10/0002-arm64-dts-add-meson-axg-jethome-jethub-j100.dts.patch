@@ -1,4 +1,4 @@
-From faf109de762fd46e0634aa2672f3be4cb87bf158 Mon Sep 17 00:00:00 2001
+From b069cf75347387532bc0507d81cfe304ab45c20e Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Sat, 20 Mar 2021 14:23:36 +0300
 Subject: [PATCH 2/5] arm64: dts: add meson-axg-jethome-jethub-j100.dts
@@ -6,8 +6,8 @@ Subject: [PATCH 2/5] arm64: dts: add meson-axg-jethome-jethub-j100.dts
 Signed-off-by: Vyacheslav Bocharov <devel@lexina.in>
 ---
  arch/arm64/boot/dts/amlogic/Makefile          |   1 +
- .../amlogic/meson-axg-jethome-jethub-j100.dts | 419 ++++++++++++++++++
- 2 files changed, 420 insertions(+)
+ .../amlogic/meson-axg-jethome-jethub-j100.dts | 420 ++++++++++++++++++
+ 2 files changed, 421 insertions(+)
  create mode 100644 arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
 
 diff --git a/arch/arm64/boot/dts/amlogic/Makefile b/arch/arm64/boot/dts/amlogic/Makefile
@@ -23,15 +23,16 @@ index 6b5fa671194a..a0d7a7c36f9b 100644
  dtb-$(CONFIG_ARCH_MESON) += meson-g12a-x96-max.dtb
 diff --git a/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
 new file mode 100644
-index 000000000000..aaf12c6ee80a
+index 000000000000..45eeb02c7018
 --- /dev/null
 +++ b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
-@@ -0,0 +1,419 @@
+@@ -0,0 +1,420 @@
 +
 +/dts-v1/;
 +
 +#include "meson-axg.dtsi"
 +#include <dt-bindings/input/input.h>
++#include <dt-bindings/thermal/thermal.h>
 +
 +/ {
 +	compatible = "jethome,j100", "amlogic,a113d", "amlogic,meson-axg";
