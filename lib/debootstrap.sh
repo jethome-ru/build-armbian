@@ -583,7 +583,7 @@ prepare_partitions()
 		if [[ $ROOTFS_TYPE == btrfs && $BTRFS_COMPRESSION != none ]]; then
 			local fscreateopt="-o compress-force=${BTRFS_COMPRESSION}"
 		fi
-		mount ${fscreateopt} $rootdevice $MOUNT/
+		mount ${fscreateopt} $rootdevice $MOUNT/ || exit_with_error "Unable to mount \"$rootdevice\" to \"$MOUNT/\""
 		# create fstab (and crypttab) entry
 		if [[ $CRYPTROOT_ENABLE == yes ]]; then
 			# map the LUKS container partition via its UUID to be the 'cryptroot' device
