@@ -1,19 +1,20 @@
-From d07421e4ddc1711cbedc7443aa188fd61b4890ca Mon Sep 17 00:00:00 2001
+From 1aecebd294bf53fb61f805be4698eb2c3d31af90 Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Sat, 14 Aug 2021 13:48:41 +0300
 Subject: [PATCH 11/11] Add command "adc singletest" - return result of compare
  adc input with value
 
+Signed-off-by: Vyacheslav Bocharov <devel@lexina.in>
 ---
- cmd/adc.c                       | 27 ++++++++++++++++++++++++++-
+ cmd/adc.c                       | 26 +++++++++++++++++++++++++-
  configs/jethub_j80_v1_defconfig |  5 ++++-
- 2 files changed, 30 insertions(+), 2 deletions(-)
+ 2 files changed, 29 insertions(+), 2 deletions(-)
 
 diff --git a/cmd/adc.c b/cmd/adc.c
-index bf91cd80dfc..0a98926d178 100644
+index bf91cd80dfc..078dc8d98c9 100644
 --- a/cmd/adc.c
 +++ b/cmd/adc.c
-@@ -92,9 +92,32 @@ static int do_adc_single(struct cmd_tbl *cmdtp, int flag, int argc,
+@@ -92,9 +92,31 @@ static int do_adc_single(struct cmd_tbl *cmdtp, int flag, int argc,
  	else
  		printf("%u\n", data);
  
@@ -24,9 +25,8 @@ index bf91cd80dfc..0a98926d178 100644
 +static int do_adc_single_test(struct cmd_tbl *cmdtp, int flag, int argc,
 +			 char *const argv[])
 +{
-+	struct udevice *dev;
 +	unsigned int data;
-+	int ret, uV, val;
++	int ret, val;
 +
 +	if (argc < 4)
 +		return CMD_RET_USAGE;
@@ -47,7 +47,7 @@ index bf91cd80dfc..0a98926d178 100644
  static int do_adc_scan(struct cmd_tbl *cmdtp, int flag, int argc,
  		       char *const argv[])
  {
-@@ -150,10 +173,12 @@ static char adc_help_text[] =
+@@ -150,10 +172,12 @@ static char adc_help_text[] =
  	"list - list ADC devices\n"
  	"adc info <name> - Get ADC device info\n"
  	"adc single <name> <channel> - Get Single data of ADC device channel\n"
