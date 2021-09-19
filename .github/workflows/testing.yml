@@ -6,9 +6,9 @@ name: CI-testing
 on:
   # Triggers the workflow on push or pull request events but only for the jethub-repo branch
   push:
-    branches: [ *jethub* ]
+    branches: [ add* ]
   pull_request:
-    branches: [ *jethub* ]
+    branches: [ add* ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
