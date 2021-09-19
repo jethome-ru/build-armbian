@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CI-testing
+name: CI integration edge build testing
 
 # Controls when the workflow will run
 on:
