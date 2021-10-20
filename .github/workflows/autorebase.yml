@@ -1,0 +1,64 @@
+name: Autorebase
+
+on:
+  schedule:
+    - cron:  '30 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  prepare:
+    name: Prepare repository
+    runs-on: [self-hosted]
+    if: ${{ github.repository_owner == 'jethome-ru' }}
+    outputs:
+      matrix: ${{steps.list_dirs.outputs.matrix}}
+    steps:
+      - name: Clean git
+        run: |
+          mkdir -p rebase
+          cd rebase
+          git remote remove upstream || true
+      - name: Checkout armbian repository (nightly)
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          repository: jethome-ru/build-armbian
+          path: rebase
+          ref: nightly
+      - name: Rebase armbian repository (nightly)
+        run: |
+          cd rebase
+          UPSTREAM=https://github.com/armbian/build.git
+          git remote add upstream $UPSTREAM  || true
+          git fetch upstream nightly
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name  "GitHub Actions"
+          git rebase upstream/nightly
+          if [ "$(git status | grep diverged)" ]; then
+            git push origin $(git branch --show-current) --force-with-lease;
+          else
+            git push origin $(git branch --show-current)
+          fi;
+          git remote remove upstream || true
+      - name: Checkout armbian repository (master)
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          repository: jethome-ru/build-armbian
+          path: rebase
+          ref: master
+      - name: Rebase armbian repository (master)
+        run: |
+          cd rebase
+          UPSTREAM=https://github.com/armbian/build.git
+          git remote add upstream $UPSTREAM
+          git fetch upstream master
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name  "GitHub Actions"
+          git rebase upstream/master
+          if [ "$(git status | grep diverged)" ]; then
+            git push origin $(git branch --show-current) --force-with-lease;
+          else
+            git push origin $(git branch --show-current)
+          fi;
+          git remote remove upstream || true
