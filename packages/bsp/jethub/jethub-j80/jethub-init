@@ -63,4 +63,7 @@ echo 1 > /sys/class/gpio/gpio490/value
 sleep 1
 echo 0 > /sys/class/gpio/gpio490/value
 
+echo "${0}: Configure Ethernet leds ..."
+/usr/sbin/jethub_set-eth_leds
+
 exit 0
