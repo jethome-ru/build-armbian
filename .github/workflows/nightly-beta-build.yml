@@ -161,6 +161,7 @@ jobs:
         run: |
           cd tools
           while read -r line; do
+              echo $line
               read -r platform branch osname cli beta crimage <<<$line
               DEB="../build/output/debs-beta/linux-u-boot-$branch-$platform_$(cat ../build/VERSION)_arm64.deb"
               dpkg -x "$DEB" output
@@ -168,7 +169,7 @@ jobs:
                 [[ -d output/usr/lib/linux*/uboot.nosd.bin ]] && cp output/usr/lib/linux*/u-boot.nosd.bin src/j100/u-boot.armbian.bin
                 ./convert.sh ../build/output/images/$platform/nightly/Armbian_$(cat ../build/VERSION)_$platform_$osname_$branch.*img.xz d1 armbian compress
               else
-                [[ -d output/usr/lib/linux*/uboot.nosd.bin ]] cp output/usr/lib/linux*/u-boot.nosd.bin src/j80/u-boot.armbian.bin
+                [[ -d output/usr/lib/linux*/uboot.nosd.bin ]] && cp output/usr/lib/linux*/u-boot.nosd.bin src/j80/u-boot.armbian.bin
                 ./convert.sh ../build/output/images/$platform/nightly/Armbian_$(cat ../build/VERSION)_$platform_$osname_$branch.*img.xz h1 armbian compress
               fi
               rm -rf output/usr
