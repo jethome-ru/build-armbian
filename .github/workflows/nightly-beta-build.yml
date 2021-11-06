@@ -4,6 +4,12 @@ on:
   schedule:
     - cron:  '30 5 * * *'
   workflow_dispatch:
+    inputs:
+
+      buildbranch:
+        description: 'Branch for build: nightly | master | any'
+        required: false
+        default: 'nightly'
 
 jobs:
   prepare:
@@ -19,7 +25,7 @@ jobs:
           fetch-depth: 0
           repository: jethome-ru/build-armbian
           path: build
-          ref: nightly
+          ref: ${{ github.event.inputs.buildbranch }}
           clean: false
       - name: Checkout scripts repository
         uses: actions/checkout@v2
@@ -93,7 +99,7 @@ jobs:
           path: scripts
           ref: master
 
-      - name: Checkout armbian repository
+      - name: Checkout armbian-tools repository
         uses: actions/checkout@v2
         with:
           repository: jethome-ru/jethome-tools
@@ -105,7 +111,7 @@ jobs:
         with:
           repository: jethome-ru/build-armbian
           path: build
-          ref: nightly
+          ref: ${{ github.event.inputs.buildbranch }}
           clean: false
 
       - name: Set env variables
@@ -119,7 +125,6 @@ jobs:
          [[ -z $VER ]] && VER="0"
          sed -i "s/$/.jethome.$VER/" VERSION
 
-
       - name: Configure GPG Key
         run: |
           echo -n "$GPG_SIGNING_KEY" | gpg --import
@@ -128,7 +133,6 @@ jobs:
         env:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
           GPG_PASS: ${{ secrets.GPG_PASSPHRASE }}
-
 
       - uses: crazy-max/ghaction-import-gpg@v3
         with:
@@ -146,6 +150,8 @@ jobs:
           if_key_exists: replace
 
       - name: Build image
+        env:
+           BUILDBRANCH:  ${{ github.event.inputs.buildbranch }}
         run: |
           CHUNK="${{ matrix.node }}"
           cd build
@@ -154,10 +160,13 @@ jobs:
           [[ ! -f .ignore_changes ]] && sudo touch .ignore_changes
           # link build targets
           sudo ln -sf ../../temp/split-${CHUNK}.conf userpatches/targets.conf
+          echo LIB_TAG=\"${BUILDBRANCH}\" >>userpatches/config-all-new-beta-images.conf
           cat userpatches/targets.conf
           ./compile.sh all-new-beta-images GPG_PASS="${GPG_PASS}"
 
       - name: Convert image to burn
+        env:
+           BUILDBRANCH:  ${{ github.event.inputs.buildbranch }}
         run: |
           cd tools
           while read -r line; do
@@ -167,10 +176,10 @@ jobs:
               dpkg -x "$DEB" output
               if [[ "$platform" == "jethubj100" ]]; then
                 [[ -d output/usr/lib/linux*/uboot.nosd.bin ]] && cp output/usr/lib/linux*/u-boot.nosd.bin src/j100/u-boot.armbian.bin
-                ./convert.sh ../build/output/images/${platform}/nightly/Armbian_$(cat ../build/VERSION)_${platform^}_${osname}_${branch}.*img.xz d1 armbian compress
+                ./convert.sh ../build/output/images/${platform}/nightly/Armbian_$(cat ../build/VERSION)_${platform^}_${osname}_${branch}_*img.xz d1 armbian compress
               else
                 [[ -d output/usr/lib/linux*/uboot.nosd.bin ]] && cp output/usr/lib/linux*/u-boot.nosd.bin src/j80/u-boot.armbian.bin
-                ./convert.sh ../build/output/images/${platform}/nightly/Armbian_$(cat ../build/VERSION)_${platform^}_${osname}_${branch}.*img.xz h1 armbian compress
+                ./convert.sh ../build/output/images/${platform}/nightly/Armbian_$(cat ../build/VERSION)_${platform^}_${osname}_${branch}_*img.xz h1 armbian compress
               fi
               rm -rf output/usr
           done <<< "$(cat ../build/userpatches/targets.conf)"
