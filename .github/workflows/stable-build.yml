@@ -193,10 +193,10 @@ jobs:
               dpkg -x "$DEB" output
               if [[ "$platform" == "jethubj100" ]]; then
                 [[ -d output/usr/lib/linux*/uboot.nosd.bin ]] && cp output/usr/lib/linux*/u-boot.nosd.bin src/j100/u-boot.armbian.bin
-                ./convert.sh ../build/output/images/${platform}/archive/Armbian_$(cat ../build/VERSION)_${platform^}_${osname}_${branch}_*img.xz d1 armbian compress
+                ./convert.sh ../build/output/images/${platform}/archive/Armbian_$(cat ../build/VERSION)_${platform^}_${osname}_${branch}_*img.xz d1 armbian compress output/usr/lib/linux*/u-boot.nosd.bin
               else
                 [[ -d output/usr/lib/linux*/uboot.nosd.bin ]] && cp output/usr/lib/linux*/u-boot.nosd.bin src/j80/u-boot.armbian.bin
-                ./convert.sh ../build/output/images/${platform}/archive/Armbian_$(cat ../build/VERSION)_${platform^}_${osname}_${branch}_*img.xz h1 armbian compress
+                ./convert.sh ../build/output/images/${platform}/archive/Armbian_$(cat ../build/VERSION)_${platform^}_${osname}_${branch}_*img.xz h1 armbian compress output/usr/lib/linux*/u-boot.nosd.bin
               fi
               rm -rf output/usr
           done <<< "$(cat ../build/userpatches/targets.conf)"
