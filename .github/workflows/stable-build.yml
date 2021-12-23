@@ -207,3 +207,11 @@ jobs:
          rsync -avr output/images/ repo@update.jethome.ru:/var/www/update.jethome.ru/armbian/$JETHOME_CI_FIRMW_DIR/
          cd ../tools
          rsync -avr output/ repo@update.jethome.ru:/var/www/update.jethome.ru/armbian/$JETHOME_CI_FIRMW_DIR/burn/${BUILDBRANCH}/
+
+      - name: Upload debs
+        run: |
+         cd build
+         while read -r line; do
+              read -r platform branch osname cli beta crimage <<<$line
+              rsync -avr output/debs/ repo@update.jethome.ru:/home/repo/armbian/${osname}
+         done <<< "$(cat userpatches/targets.conf)"
