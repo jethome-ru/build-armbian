@@ -209,8 +209,11 @@ jobs:
 
       - name: Upload debs
         run: |
-         cd build
-         while read -r line; do
-              read -r platform branch osname cli beta crimage <<<$line
-              rsync -avr output/debs-beta/ repo@update.jethome.ru:/home/repo/armbian-beta/${osname}
-         done <<< "$(cat userpatches/targets.conf)"
+         if [[ "${{ env.BUILDBRANCH }}" == "nightly" ]]; then
+           cd build
+           while read -r line; do
+                read -r platform branch osname cli beta crimage <<<$line
+                rsync -avr output/debs-beta/ repo@update.jethome.ru:/home/repo/armbian-beta/${osname}
+                echo "Publish beta debs for ${osname}"
+           done <<< "$(cat userpatches/targets.conf)"
+         fi
