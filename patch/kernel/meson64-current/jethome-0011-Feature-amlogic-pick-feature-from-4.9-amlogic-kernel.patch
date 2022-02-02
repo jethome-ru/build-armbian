@@ -1,7 +1,7 @@
-From 88c7a72cc8732ba2651b98221e07a62fe4c05a21 Mon Sep 17 00:00:00 2001
+From bcdde14c6363b431f0230a0efff99c199e0beda9 Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Sun, 28 Mar 2021 14:48:00 +0300
-Subject: [PATCH 12/15] Feature: amlogic: pick feature from 4.9-amlogic kernel:
+Subject: [PATCH 11/16] Feature: amlogic: pick feature from 4.9-amlogic kernel:
  inverse eth status led
 
 ---
@@ -116,5 +116,5 @@ index 6d6bd77bb6af..6ac942a31de8 100644
  
  	ret = stmmac_dvr_probe(&pdev->dev, plat_dat, &stmmac_res);
 -- 
-2.25.1
+2.30.2
 

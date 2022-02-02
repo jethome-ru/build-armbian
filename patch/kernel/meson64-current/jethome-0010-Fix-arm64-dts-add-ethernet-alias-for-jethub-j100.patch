@@ -1,7 +1,7 @@
-From 0fd7b0a866083d4c4411f1b8298065f4770d17e8 Mon Sep 17 00:00:00 2001
+From 01ce4f74257c2ae1f0090a1ae2a7060f10494fe5 Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Sat, 20 Mar 2021 17:32:23 +0300
-Subject: [PATCH 11/15] Fix: arm64: dts: add ethernet alias for jethub j100
+Subject: [PATCH 10/16] Fix: arm64: dts: add ethernet alias for jethub j100
 
 ---
  arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts | 1 +
@@ -20,5 +20,5 @@ index 2cd244ca907b..38e94968a7ef 100644
  
  	chosen {
 -- 
-2.25.1
+2.30.2
 

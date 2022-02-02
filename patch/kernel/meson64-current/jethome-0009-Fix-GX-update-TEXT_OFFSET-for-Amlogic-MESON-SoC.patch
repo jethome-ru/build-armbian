@@ -1,7 +1,7 @@
-From fbb4b1b4bfbe00de398092e4cca1bd10299b8e0f Mon Sep 17 00:00:00 2001
+From 090aed5ef34050f3ef5621cbdb269e6d0414ff42 Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Mon, 1 Mar 2021 10:35:21 +0300
-Subject: [PATCH 10/15] Fix: GX: update TEXT_OFFSET for Amlogic MESON SoC
+Subject: [PATCH 09/16] Fix: GX: update TEXT_OFFSET for Amlogic MESON SoC
 
 ---
  arch/arm64/Makefile      | 4 ++++
@@ -40,5 +40,5 @@ index 037421c66b14..18b37e2d2a00 100644
  
  /*
 -- 
-2.25.1
+2.30.2
 

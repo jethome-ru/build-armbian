@@ -1,7 +1,7 @@
-From ee6f60b751634084069ef8b1d3a032eafa84264c Mon Sep 17 00:00:00 2001
+From 10393eefe04dd1a8b2420f05767cdd610686d9e5 Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Sat, 20 Mar 2021 15:04:50 +0300
-Subject: [PATCH 07/15] Fix: brcmfmac: fix not applying 'iw reg set AU'. set
+Subject: [PATCH 07/16] Fix: brcmfmac: fix not applying 'iw reg set AU'. set
  default to 'AU'
 
 ---
@@ -115,5 +115,5 @@ index 763a45655ac2..d655f65bd7b8 100644
  static const struct ieee80211_regdomain *cfg80211_user_regdom;
  
 -- 
-2.25.1
+2.30.2
 

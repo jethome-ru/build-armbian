@@ -1,7 +1,7 @@
-From b9b9b370a52e50356bbfd830d7c6f072a743268c Mon Sep 17 00:00:00 2001
+From 457480edf54bd32b51435bbfef0ba1c1ad801528 Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Sat, 20 Mar 2021 16:36:52 +0300
-Subject: [PATCH 09/15] Fix: add dts j100 intc gpio
+Subject: [PATCH 08/16] Fix: add dts j100 intc gpio
 
 ---
  .../arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts | 5 +++++
@@ -22,10 +22,10 @@ index 3d0e516ad83a..2cd244ca907b 100644
 +	status = "okay";
 +};
 diff --git a/arch/arm64/boot/dts/amlogic/meson-axg.dtsi b/arch/arm64/boot/dts/amlogic/meson-axg.dtsi
-index 6d835d8666f9..26fc8db25271 100644
+index c33c2b88c8e9..e1e6898ed73c 100644
 --- a/arch/arm64/boot/dts/amlogic/meson-axg.dtsi
 +++ b/arch/arm64/boot/dts/amlogic/meson-axg.dtsi
-@@ -321,6 +321,9 @@ gpio: bank@480 {
+@@ -271,6 +271,9 @@ gpio: bank@480 {
  					      <0x0 0x00430 0x0 0x3c>;
  					reg-names = "mux", "pull", "pull-enable", "gpio";
  					gpio-controller;
@@ -35,7 +35,7 @@ index 6d835d8666f9..26fc8db25271 100644
  					#gpio-cells = <2>;
  					gpio-ranges = <&pinctrl_periphs 0 0 86>;
  				};
-@@ -1683,7 +1686,7 @@ reset: reset-controller@1004 {
+@@ -1633,7 +1636,7 @@ reset: reset-controller@1004 {
  
  			gpio_intc: interrupt-controller@f080 {
  				compatible = "amlogic,meson-axg-gpio-intc",
@@ -45,5 +45,5 @@ index 6d835d8666f9..26fc8db25271 100644
  				interrupt-controller;
  				#interrupt-cells = <2>;
 -- 
-2.25.1
+2.30.2
 

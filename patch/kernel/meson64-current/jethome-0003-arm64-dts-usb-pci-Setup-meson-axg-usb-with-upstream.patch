@@ -1,7 +1,7 @@
-From 3ba67e71c496bd3e2b792de438b3fb9616c54991 Mon Sep 17 00:00:00 2001
+From 1c560632390acd48ff5eda799f8a38daa81e2890 Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Fri, 19 Feb 2021 13:14:53 +0300
-Subject: [PATCH 03/15] arm64: dts: usb/pci: Setup meson-axg usb with upstream
+Subject: [PATCH 03/16] arm64: dts: usb/pci: Setup meson-axg usb with upstream
 
 ---
  arch/arm64/boot/dts/amlogic/meson-axg.dtsi | 50 ++++++++++++++++++++++
@@ -76,5 +76,5 @@ index 8e134cb470d3..724ee179b316 100644
  
  		sram: sram@fffc0000 {
 -- 
-2.25.1
+2.30.2
 

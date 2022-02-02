@@ -1,7 +1,7 @@
-From c6aa2aace6c6b0644e588d802350b66a8c901db8 Mon Sep 17 00:00:00 2001
+From 469c2ca29c697c5c552b88944fff93f0f4ca41e2 Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Sat, 20 Mar 2021 14:23:36 +0300
-Subject: [PATCH 02/15] arm64: dts: add meson-axg-jethome-jethub-j100.dts
+Subject: [PATCH 02/16] arm64: dts: add meson-axg-jethome-jethub-j100.dts
 
 ---
  arch/arm64/boot/dts/amlogic/Makefile          |   1 +
@@ -381,5 +381,5 @@ index 000000000000..3d0e516ad83a
 +	clock-names = "efuse_clk";
 +};
 -- 
-2.25.1
+2.30.2
 

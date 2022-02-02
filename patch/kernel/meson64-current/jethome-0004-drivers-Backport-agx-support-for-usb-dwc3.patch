@@ -1,7 +1,7 @@
-From ac2ff82a0be1af1a7a79de835a29421ca37b7772 Mon Sep 17 00:00:00 2001
+From 2b528c71ca30325e38399c0aa349a6376097be8c Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <devel@lexina.in>
 Date: Fri, 19 Feb 2021 14:01:38 +0300
-Subject: [PATCH 04/15] drivers: Backport agx support for usb-dwc3
+Subject: [PATCH 04/16] drivers: Backport agx support for usb-dwc3
 
 ---
  drivers/usb/dwc3/dwc3-meson-g12a.c | 17 +++++++++++++++++
@@ -43,5 +43,5 @@ index 1f7f4d88ed9d..90275c13c224 100644
  		.compatible = "amlogic,meson-g12a-usb-ctrl",
  		.data = &g12a_drvdata,
 -- 
-2.25.1
+2.30.2
 
