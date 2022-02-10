@@ -490,7 +490,7 @@ compile_firmware()
 
 	fetch_from_repo "https://github.com/armbian/firmware" "armbian-firmware-git" "branch:master"
 	if [[ -n $FULL ]]; then
-		fetch_from_repo "$plugin_repo" "linux-firmware-git" "branch:master"
+		fetch_from_repo "$plugin_repo" "linux-firmware-git" "branch:main"
 		# cp : create hardlinks
 		cp -af --reflink=auto "${SRC}"/cache/sources/linux-firmware-git/* "${firmwaretempdir}/${plugin_dir}/lib/firmware/"
 	fi
