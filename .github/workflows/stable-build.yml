@@ -86,7 +86,7 @@ jobs:
     env:
       BUILDBRANCH:  ${{ inputs.buildbranch == null && github.event.inputs.buildbranch || inputs.buildbranch }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         node: ${{fromJson(needs.Prepare.outputs.matrix)}}
 
