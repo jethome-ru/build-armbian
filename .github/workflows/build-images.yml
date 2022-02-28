@@ -39,6 +39,8 @@ jobs:
   merge:
     needs: [ fake ]
     uses: jethome-ru/build-armbian/.github/workflows/autorebase.yml@main
+    secrets:
+      token: ${{ secrets.ARMBIAN_UPDATE_TOKEN }}
 
   cli:
     needs: [ merge ]
@@ -54,7 +56,7 @@ jobs:
       uploading: true
 
     secrets:
-      TOKEN: ${{ secrets.TOKEN }}
+      TOKEN: ${{ secrets.ARMBIAN_UPDATE_TOKEN }}
       SSHKEY: ${{ secrets.SSHKEY }}
       SSHKNOWNHOSTS: ${{ secrets.SSHKNOWNHOSTS }}
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
