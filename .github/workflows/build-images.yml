@@ -37,11 +37,9 @@ jobs:
           if-no-files-found: ignore
       
   merge:
-    env:
-      token:  ${{ inputs.token == null && secrets.ARMBIAN_UPDATE_TOKEN || inputs.buildbranch }}
     needs: [ fake ]
     uses: jethome-ru/build-armbian/.github/workflows/autorebase.yml@main
-    secrets:  
+    with:  
       token: ${{ secrets.ARMBIAN_UPDATE_TOKEN }}
 
   cli:
