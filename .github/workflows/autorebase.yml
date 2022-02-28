@@ -3,6 +3,7 @@ name: Autorebase
 on:
   schedule:
     - cron:  '30 4 * * *'
+  workflow_call:
   workflow_dispatch:
 
 jobs:
