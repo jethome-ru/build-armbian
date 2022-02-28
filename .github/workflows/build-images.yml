@@ -14,9 +14,9 @@ on:
         type: choice
         description: Build runners for CLI
         options:
-        - self-hosted, hirsute
-        - self-hosted
-        default: self-hosted, hirsute
+        - [self-hosted, hirsute]
+        - [self-hosted]
+        default: [self-hosted, hirsute]
       sourcerepo:
         description: Source repository
         required: true
