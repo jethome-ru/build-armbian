@@ -4,6 +4,9 @@ on:
   schedule:
     - cron:  '30 4 * * *'
   workflow_call:
+    secrets:
+      token:
+        required: true
   workflow_dispatch:
 
 jobs:
