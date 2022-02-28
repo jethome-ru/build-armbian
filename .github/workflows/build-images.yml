@@ -14,7 +14,7 @@ on:
         type: choice
         description: Build runners for CLI
         options:
-        - hirsute]
+        - hirsute
         - focal
         default: hirsute
       sourcerepo:
