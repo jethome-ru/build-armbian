@@ -29,7 +29,8 @@ jobs:
           repository: jethome-ru/build-armbian
           path: rebase
           ref: nightly
-          token: ${{ secrets.ARMBIAN_UPDATE_TOKEN }}
+          token: ${{ inputs.token == null && secrets.ARMBIAN_UPDATE_TOKEN || inputs.token }}
+
       - name: Rebase armbian repository (nightly)
         run: |
           cd rebase
@@ -52,7 +53,7 @@ jobs:
           repository: jethome-ru/build-armbian
           path: rebase
           ref: master
-          token: ${{ secrets.ARMBIAN_UPDATE_TOKEN }}
+          token: ${{ inputs.token == null && secrets.ARMBIAN_UPDATE_TOKEN || inputs.token }}
       - name: Rebase armbian repository (master)
         run: |
           cd rebase
