@@ -1,4 +1,4 @@
-name: Build Images
+name: Build JetHub Images
 
 on:
   workflow_dispatch:
@@ -58,8 +58,7 @@ jobs:
       uploading: true
 
     secrets:
-      GITHUB_TOKEN: ${{ secrets.TOKEN }}
-      token: ${{ secrets.TOKEN }}
+      TOKEN: ${{ secrets.TOKEN }}
       SSHKEY: ${{ secrets.SSHKEY }}
       SSHKNOWNHOSTS: ${{ secrets.SSHKNOWNHOSTS }}
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
