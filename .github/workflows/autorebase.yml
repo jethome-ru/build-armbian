@@ -46,6 +46,7 @@ jobs:
             git push origin $(git branch --show-current)
           fi;
           git remote remove upstream || true
+
       - name: Checkout armbian repository (master)
         uses: actions/checkout@v2
         with:
@@ -69,3 +70,28 @@ jobs:
             git push origin $(git branch --show-current)
           fi;
           git remote remove upstream || true
+
+      - name: Checkout armbian repository (v22.02)
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          repository: jethome-ru/build-armbian
+          path: rebase
+          ref: v22.02
+          token: ${{ secrets.token == null && secrets.ARMBIAN_UPDATE_TOKEN || secrets.token }}
+      - name: Rebase armbian repository (v22.02)
+        run: |
+          cd rebase
+          UPSTREAM=https://github.com/armbian/build.git
+          git remote add upstream $UPSTREAM
+          git fetch upstream v22.02
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name  "GitHub Actions"
+          git rebase upstream/v22.02
+          if [ "$(git status | grep diverged)" ]; then
+            git push origin $(git branch --show-current) --force-with-lease;
+          else
+            git push origin $(git branch --show-current)
+          fi;
+          git remote remove upstream || true
+
