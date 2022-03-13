@@ -35,7 +35,7 @@ jobs:
           path: changes
           name: changes
           if-no-files-found: ignore
-      
+
   merge:
     needs: [ fake ]
     uses: jethome-ru/build-armbian/.github/workflows/autorebase.yml@main
@@ -61,6 +61,7 @@ jobs:
       SSHKNOWNHOSTS: ${{ secrets.SSHKNOWNHOSTS }}
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
       GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      FWUPLOAD: ${{ secrets.FWUPLOAD }}
 
   jobsend:
     name: finish
