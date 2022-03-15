@@ -1,4 +1,4 @@
-name: Build JetHub Images
+name: Build JetHub Images J100
 
 on:
   workflow_dispatch:
@@ -10,15 +10,6 @@ on:
         - beta
         - stable
         - rc
-        default: beta
-      board:
-        type: choice
-        description: Build for board
-        options:
-        - jethub
-        - jethubj100
-        - jethubj80
-        default: jethub
       runner:
         type: choice
         description: Build runners for CLI
@@ -60,7 +51,7 @@ jobs:
       runner: '${{ github.event.inputs.runner }}'
       part: 1
       of: 1
-      include: 'grep ${{ github.event.inputs.board }} | '
+      include: 'grep jethubj100 | '
       exclude: ''
       uploading: true
 
