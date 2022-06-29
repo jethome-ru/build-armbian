@@ -1,4 +1,4 @@
-From a18d7b1fea7b75eed5f736fd0dba856e8b9f3c90 Mon Sep 17 00:00:00 2001
+From 7c0cb0ba2309b8ff4233fa5670c6ba7dc129e8c5 Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <adeep@lexina.in>
 Date: Wed, 29 Jun 2022 09:26:35 +0300
 Subject: [PATCH] Move amlogic-2019 aml partition/keyman code to mainline
@@ -12,6 +12,7 @@ Subject: [PATCH] Move amlogic-2019 aml partition/keyman code to mainline
  common/aml_dt.c                               |   599 +
  common/partitions.c                           |   206 +
  configs/jethub_j100_defconfig                 |     7 +
+ configs/jethub_j80_defconfig                  |     8 +
  disk/Kconfig                                  |    13 +
  disk/Makefile                                 |     1 +
  disk/part_aml.c                               |   110 +
@@ -115,7 +116,7 @@ Subject: [PATCH] Move amlogic-2019 aml partition/keyman code to mainline
  include/amlstorage/partition_table.h          |    72 +
  include/mmc.h                                 |    26 +-
  include/part.h                                |     3 +
- 111 files changed, 63003 insertions(+), 2 deletions(-)
+ 112 files changed, 63011 insertions(+), 2 deletions(-)
  create mode 100644 cmd/aml_mmc.c
  create mode 100644 cmd/storage.c
  create mode 100644 common/aml_dt.c
@@ -6149,6 +6150,22 @@ index 63c5329398..3b2fe987bf 100644
 +CONFIG_AML_STORAGE=y
 +CONFIG_EFUSE=y
 +CONFIG_AML_PARTITION=y
+diff --git a/configs/jethub_j80_defconfig b/configs/jethub_j80_defconfig
+index 8746ed9c80..43d0c62b50 100644
+--- a/configs/jethub_j80_defconfig
++++ b/configs/jethub_j80_defconfig
+@@ -69,3 +69,11 @@ CONFIG_USB_GADGET_PRODUCT_NUM=0xfada
+ CONFIG_USB_GADGET_DWC2_OTG=y
+ CONFIG_USB_GADGET_DOWNLOAD=y
+ CONFIG_OF_LIBFDT_OVERLAY=y
++
++CONFIG_AML_DRIVER=y
++CONFIG_UNIFY_KEY_MANAGE=y
++CONFIG_SECURE_STORAGE=y
++CONFIG_AML_STORAGE=y
++CONFIG_EFUSE=y
++CONFIG_AML_PARTITION=y
++
 diff --git a/disk/Kconfig b/disk/Kconfig
 index 359af3b27e..ae79fc872b 100644
 --- a/disk/Kconfig
