@@ -1,0 +1,36 @@
+From 96279a2521d2f4dc26fbfa40f0b5d68bfeb05536 Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <adeep@lexina.in>
+Date: Fri, 8 Oct 2021 13:44:07 +0300
+Subject: [PATCH 2/2] chipid test
+
+---
+ arch/arm/mach-meson/sm.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/mach-meson/sm.c b/arch/arm/mach-meson/sm.c
+index 42c47027c5..1dcef7ee78 100644
+--- a/arch/arm/mach-meson/sm.c
++++ b/arch/arm/mach-meson/sm.c
+@@ -105,8 +105,8 @@ ssize_t meson_sm_get_max_bytes(void)
+ }
+ 
+ #define SM_CHIP_ID_LENGTH	119
+-#define SM_CHIP_ID_OFFSET	4
+-#define SM_CHIP_ID_SIZE		12
++#define SM_CHIP_ID_OFFSET	0
++#define SM_CHIP_ID_SIZE		20
+ 
+ int meson_sm_get_serial(void *buffer, size_t size)
+ {
+@@ -115,7 +115,7 @@ int meson_sm_get_serial(void *buffer, size_t size)
+ 	meson_init_shmem();
+ 
+ 	regs.regs[0] = FN_CHIP_ID;
+-	regs.regs[1] = 0;
++	regs.regs[1] = 2;
+ 	regs.regs[2] = 0;
+ 
+ 	smc_call(&regs);
+-- 
+2.30.2
+
