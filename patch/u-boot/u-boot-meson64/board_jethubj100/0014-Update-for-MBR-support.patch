@@ -1,0 +1,142 @@
+From 2c8355c2f46909b48c8b5570d7337b55390374ee Mon Sep 17 00:00:00 2001
+From: Vyacheslav Bocharov <adeep@lexina.in>
+Date: Thu, 30 Jun 2022 13:48:05 +0300
+Subject: [PATCH] Update for MBR support
+
+---
+ common/aml_dt.c                          |  3 ++-
+ configs/jethub_j100_defconfig            |  2 +-
+ configs/jethub_j80_defconfig             |  2 +-
+ drivers/amlogic/keymanage/km_efuse_key.c |  8 +++-----
+ drivers/efuse/efuse_usr_space_api.c      |  1 +
+ drivers/mmc/aml_emmc_partition.c         | 10 +++++-----
+ 6 files changed, 13 insertions(+), 13 deletions(-)
+
+diff --git a/common/aml_dt.c b/common/aml_dt.c
+index eff011f43a..a6888999d4 100644
+--- a/common/aml_dt.c
++++ b/common/aml_dt.c
+@@ -25,6 +25,7 @@ Description:
+ #include <amlogic/asm/io.h>
+ #include <amlogic/asm/secure_apb.h>
+ #include <amlstorage/partition_table.h>
++#include <gzip.h>
+ 
+ //#define AML_DT_DEBUG
+ #ifdef AML_DT_DEBUG
+@@ -265,7 +266,7 @@ unsigned long __attribute__((unused))	get_multi_dt_entry(unsigned long fdt_addr)
+ 		if (fdt_addr != (unsigned long)pInputFDT) //in case of GZIP single DTB
+ 			memcpy((void*)fdt_addr,(void*)pInputFDT,unzip_size);
+ 
+-			lReturn = fdt_addr;
++		lReturn = fdt_addr;
+ 
+ 	}break;
+ 	case MAGIC_DTB_MLT_ID:
+diff --git a/configs/jethub_j100_defconfig b/configs/jethub_j100_defconfig
+index 2c4a7aafb9..3b2fe987bf 100644
+--- a/configs/jethub_j100_defconfig
++++ b/configs/jethub_j100_defconfig
+@@ -71,4 +71,4 @@ CONFIG_UNIFY_KEY_MANAGE=y
+ CONFIG_SECURE_STORAGE=y
+ CONFIG_AML_STORAGE=y
+ CONFIG_EFUSE=y
+-#CONFIG_AML_PARTITION=y
++CONFIG_AML_PARTITION=y
+diff --git a/configs/jethub_j80_defconfig b/configs/jethub_j80_defconfig
+index 17542b1543..43d0c62b50 100644
+--- a/configs/jethub_j80_defconfig
++++ b/configs/jethub_j80_defconfig
+@@ -75,5 +75,5 @@ CONFIG_UNIFY_KEY_MANAGE=y
+ CONFIG_SECURE_STORAGE=y
+ CONFIG_AML_STORAGE=y
+ CONFIG_EFUSE=y
+-#CONFIG_AML_PARTITION=y
++CONFIG_AML_PARTITION=y
+ 
+diff --git a/drivers/amlogic/keymanage/km_efuse_key.c b/drivers/amlogic/keymanage/km_efuse_key.c
+index cd9e332ac4..1986abc9f2 100644
+--- a/drivers/amlogic/keymanage/km_efuse_key.c
++++ b/drivers/amlogic/keymanage/km_efuse_key.c
+@@ -13,6 +13,7 @@
+ #include <amlogic/asm/secure_apb.h>
+ #include <asm/io.h>
+ 
++#include <command.h>
+ #include <amlogic/aml_efuse.h>
+ 
+ #define SECURE_BOOT_KEY_NAME    "secure_boot_set"
+@@ -27,11 +28,8 @@ int keymanage_efuse_init(const char *buf, int len)
+     char ver;
+     int ret = 0;
+ 
+-    const char* dtbLoadAddr = env_get("dtb_mem_addr");
+-    if (!dtbLoadAddr) {
+-        env_set("dtb_mem_addr", simple_itoa(CONFIG_SYS_SDRAM_BASE + (16U<<20)));
+-    }
+-    dtbLoadAddr = (char*)simple_strtoul(dtbLoadAddr, NULL, 0);
++    const char* dtbLoadAddr;
++    dtbLoadAddr = (char*) env_get_ulong("fdtaddr", 16, CONFIG_SYS_SDRAM_BASE + (16U<<20));
+ 
+     ret = efuse_usr_api_init_dtb(dtbLoadAddr);
+     if (ret) {
+diff --git a/drivers/efuse/efuse_usr_space_api.c b/drivers/efuse/efuse_usr_space_api.c
+index 9756ebf167..cf9d8edb16 100644
+--- a/drivers/efuse/efuse_usr_space_api.c
++++ b/drivers/efuse/efuse_usr_space_api.c
+@@ -16,6 +16,7 @@
+ #include <malloc.h>
+ #include <linux/ctype.h>
+ #include <amlogic/asm/efuse.h>
++#include <linux/libfdt.h>
+ 
+ #define EFUSE_DBG(fmt...)   //printf("[EFUSE_DBG]"fmt)
+ #define EFUSE_MSG(fmt...)   printf("[EFUSE_MSG]"fmt)
+diff --git a/drivers/mmc/aml_emmc_partition.c b/drivers/mmc/aml_emmc_partition.c
+index a36740750f..741284e9e9 100644
+--- a/drivers/mmc/aml_emmc_partition.c
++++ b/drivers/mmc/aml_emmc_partition.c
+@@ -21,11 +21,11 @@
+ #include <amlstorage/emmc_partitions.h>
+ #include <amlogic/cpu_id.h>
+ #include <part_efi.h>
+-
++#include <asm/global_data.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ /* using mbr*/
+-#define CONFIG_PTBL_MBR	(0)
++#define CONFIG_PTBL_MBR	(1)
+ #if (CONFIG_PTBL_MBR)
+ 	/* cmpare partition name? */
+ 	#define CONFIG_CMP_PARTNAME	(0)
+@@ -1259,7 +1259,7 @@ int mmc_device_init (struct mmc *mmc)
+ {
+ 	int ret = 1;
+ #if (CONFIG_PTBL_MBR)  || (!CONFIG_AML_PARTITION)
+-	cpu_id_t cpu_id = get_cpu_id();
++	//cpu_id_t cpu_id = get_cpu_id();
+ #endif
+ 	/* partition table from dtb/code/emmc rsv */
+ 	struct _iptbl iptbl_dtb, iptbl_inh;
+@@ -1316,7 +1316,7 @@ int mmc_device_init (struct mmc *mmc)
+ 	} else
+ 		apt_wrn("get partition table from dtb failed\n");
+ #ifndef CONFIG_AML_PARTITION
+-	if (cpu_id.family_id < MESON_CPU_MAJOR_ID_G12B) {
++	if (0) { //(cpu_id.family_id < MESON_CPU_MAJOR_ID_G12B) {
+ 		printf("CONFIG_AML_PARTITION should define before G12B\n");
+ 		goto _out;
+ 	}
+@@ -1364,7 +1364,7 @@ int mmc_device_init (struct mmc *mmc)
+ 	//apt_wrn("ept source is %s\n", (ept_source == p_iptbl_ept)?"ept":"rsv");
+ #if (CONFIG_PTBL_MBR)
+ 	/* 1st sector was reserved by romboot after gxl */
+-	if (cpu_id.family_id >= MESON_CPU_MAJOR_ID_GXL) {
++	if (1) { //(cpu_id.family_id >= MESON_CPU_MAJOR_ID_GXL) {
+ 		if (_check_ptbl_mbr(mmc, p_iptbl_ept)) {
+ 			/*fixme, comaptible for mbr&ebr */
+ 			ret |= _update_ptbl_mbr(mmc, p_iptbl_ept);
+-- 
+2.30.2
+
