@@ -1,15 +1,17 @@
-From 7c0cb0ba2309b8ff4233fa5670c6ba7dc129e8c5 Mon Sep 17 00:00:00 2001
+From 33188bf8f8e42d924ac2f92f4a271af8bc1edb88 Mon Sep 17 00:00:00 2001
 From: Vyacheslav Bocharov <adeep@lexina.in>
 Date: Wed, 29 Jun 2022 09:26:35 +0300
-Subject: [PATCH] Move amlogic-2019 aml partition/keyman code to mainline
+Subject: [PATCH] Copy and update amlogic-2019 aml partition/keyman code to
+ mainline
 
 ---
+ .../meson-axg-jethome-jethub-j100-u-boot.dtsi |    92 +
  cmd/Kconfig                                   |     5 +
  cmd/Makefile                                  |     3 +
  cmd/aml_mmc.c                                 |  3542 ++
  cmd/storage.c                                 |  1503 +
  common/Makefile                               |     3 +
- common/aml_dt.c                               |   599 +
+ common/aml_dt.c                               |   600 +
  common/partitions.c                           |   206 +
  configs/jethub_j100_defconfig                 |     7 +
  configs/jethub_j80_defconfig                  |     8 +
@@ -27,7 +29,7 @@ Subject: [PATCH] Move amlogic-2019 aml partition/keyman code to mainline
  drivers/amlogic/keymanage/key_manage_i.h      |    65 +
  drivers/amlogic/keymanage/key_unify.c         |   610 +
  drivers/amlogic/keymanage/km_dts.c            |   392 +
- drivers/amlogic/keymanage/km_efuse_key.c      |   158 +
+ drivers/amlogic/keymanage/km_efuse_key.c      |   156 +
  drivers/amlogic/keymanage/km_provision_key.c  |   102 +
  drivers/amlogic/keymanage/km_secure_key.c     |   263 +
  .../amlogic/keymanage/km_secure_key_2015.c    |   118 +
@@ -42,9 +44,9 @@ Subject: [PATCH] Move amlogic-2019 aml partition/keyman code to mainline
  drivers/efuse/aml_efuse.c                     |   123 +
  drivers/efuse/bl31_apis.c                     |   474 +
  drivers/efuse/efuse.c                         |   141 +
- drivers/efuse/efuse_usr_space_api.c           |   378 +
+ drivers/efuse/efuse_usr_space_api.c           |   379 +
  drivers/mmc/Makefile                          |     3 +
- drivers/mmc/aml_emmc_partition.c              |  1654 +
+ drivers/mmc/aml_emmc_partition.c              |  1715 +
  drivers/mmc/mmc.c                             |    99 +-
  drivers/mmc/mmc_aml copy.c                    |  3299 ++
  drivers/mmc/mmc_aml.c                         |   416 +
@@ -116,7 +118,7 @@ Subject: [PATCH] Move amlogic-2019 aml partition/keyman code to mainline
  include/amlstorage/partition_table.h          |    72 +
  include/mmc.h                                 |    26 +-
  include/part.h                                |     3 +
- 112 files changed, 63011 insertions(+), 2 deletions(-)
+ 113 files changed, 63164 insertions(+), 2 deletions(-)
  create mode 100644 cmd/aml_mmc.c
  create mode 100644 cmd/storage.c
  create mode 100644 common/aml_dt.c
@@ -217,6 +219,109 @@ Subject: [PATCH] Move amlogic-2019 aml partition/keyman code to mainline
  create mode 100644 include/amlstorage/emmc_storage.h
  create mode 100644 include/amlstorage/partition_table.h
 
+diff --git a/arch/arm/dts/meson-axg-jethome-jethub-j100-u-boot.dtsi b/arch/arm/dts/meson-axg-jethome-jethub-j100-u-boot.dtsi
+index 3ecb233f8e..e0e6b2259c 100644
+--- a/arch/arm/dts/meson-axg-jethome-jethub-j100-u-boot.dtsi
++++ b/arch/arm/dts/meson-axg-jethome-jethub-j100-u-boot.dtsi
+@@ -4,6 +4,98 @@
+  * Author: Vyacheslav Bocharov <adeep@lexina.in>
+  */
+ 
++/ {
++	partitions: partitions {
++		parts = <1>;
++		part-0 = <&rootfs>;
++		rootfs: rootfs {
++			pname = "rootfs";
++			size = <0xffffffff 0xffffffff>;
++			mask = <4>;
++		};
++	};
++
++	efusekey: efusekey {
++		keynum = <5>;
++		key0 = <&key_0>;
++		key1 = <&key_1>;
++		key2 = <&key_2>;
++		key3 = <&key_3>;
++		key4 = <&key_4>;
++
++		key_0: key_0 {
++			keyname = "mac";
++			offset = <0>;
++			size = <6>;
++		};
++		key_1: key_1 {
++			keyname = "mac_bt";
++			offset = <6>;
++			size = <6>;
++		};
++		key_2: key_2 {
++			keyname = "mac_wifi";
++			offset = <12>;
++			size = <6>;
++		};
++		key_3: key_3 {
++			keyname = "usid";
++			offset = <18>;
++			size = <32>;
++		};
++		key_4: key_4 {
++			keyname = "serial";
++			offset = <50>;
++			size = <32>;
++		};
++	}; //End efusekey
++
++	unifykey {
++		compatible = "amlogic, unifykey";
++		status = "ok";
++		unifykey-num = <6>;
++		unifykey-index-0 = <&keysn_0>;
++		unifykey-index-1 = <&keysn_1>;
++		unifykey-index-2 = <&keysn_2>;
++		unifykey-index-3 = <&keysn_3>;
++		unifykey-index-4 = <&keysn_4>;
++		unifykey-index-5 = <&keysn_5>;
++
++		keysn_0: key_0 {
++			key-name = "usid";
++			key-device = "normal";
++			key-permit = "read";
++		};
++		keysn_1: key_1 {
++			key-name = "mac";
++			key-device = "normal";
++			key-permit = "read";
++		};
++		keysn_2: key_2 {
++			key-name = "mac_bt";
++			key-device = "normal";
++			key-permit = "read","write","del";
++			key-type  = "mac";
++		};
++		keysn_3: key_3 {
++			key-name = "mac_wifi";
++			key-device = "normal";
++			key-permit = "read","write","del";
++			key-type = "mac";
++		};
++		keysn_4: key_4 {
++			key-name = "serial";
++			key-device = "normal";
++			key-permit = "read";
++		};
++		keysn_5:key_5 {
++			key-name = "deviceid";
++			key-device = "normal";
++			key-permit = "read","write","del";
++		};
++	}; //End unifykey
++};
++
+ &saradc {
+ 	status = "okay";
+ 	vref-supply = <&vddio_ao18>;
 diff --git a/cmd/Kconfig b/cmd/Kconfig
 index 09193b61b9..c2d8ac7595 100644
 --- a/cmd/Kconfig
@@ -5320,10 +5425,10 @@ index 75c24e3249..acb06adad4 100644
  obj-y += board_r.o
 diff --git a/common/aml_dt.c b/common/aml_dt.c
 new file mode 100644
-index 0000000000..eff011f43a
+index 0000000000..a6888999d4
 --- /dev/null
 +++ b/common/aml_dt.c
-@@ -0,0 +1,599 @@
+@@ -0,0 +1,600 @@
 +/*
 +* Copyright (C) 2017 Amlogic, Inc. All rights reserved.
 +* *
@@ -5351,6 +5456,7 @@ index 0000000000..eff011f43a
 +#include <amlogic/asm/io.h>
 +#include <amlogic/asm/secure_apb.h>
 +#include <amlstorage/partition_table.h>
++#include <gzip.h>
 +
 +//#define AML_DT_DEBUG
 +#ifdef AML_DT_DEBUG
@@ -5591,7 +5697,7 @@ index 0000000000..eff011f43a
 +		if (fdt_addr != (unsigned long)pInputFDT) //in case of GZIP single DTB
 +			memcpy((void*)fdt_addr,(void*)pInputFDT,unzip_size);
 +
-+			lReturn = fdt_addr;
++		lReturn = fdt_addr;
 +
 +	}break;
 +	case MAGIC_DTB_MLT_ID:
@@ -6189,17 +6295,17 @@ index 359af3b27e..ae79fc872b 100644
 +
  endmenu
 diff --git a/disk/Makefile b/disk/Makefile
-index ec148832b3..fabfe120ff 100644
+index ec148832b3..73c06bf8be 100644
 --- a/disk/Makefile
 +++ b/disk/Makefile
 @@ -14,3 +14,4 @@ obj-$(CONFIG_$(SPL_TPL_)DOS_PARTITION)   += part_dos.o
  obj-$(CONFIG_$(SPL_TPL_)ISO_PARTITION)   += part_iso.o
  obj-$(CONFIG_$(SPL_TPL_)AMIGA_PARTITION) += part_amiga.o
  obj-$(CONFIG_$(SPL_TPL_)EFI_PARTITION)   += part_efi.o
-+obj-$(CONFIG_AML_PARTITION) += part_aml.o
++#obj-$(CONFIG_AML_PARTITION) += part_aml.o
 diff --git a/disk/part_aml.c b/disk/part_aml.c
 new file mode 100644
-index 0000000000..1d4a47f644
+index 0000000000..fba10916c2
 --- /dev/null
 +++ b/disk/part_aml.c
 @@ -0,0 +1,110 @@
@@ -6253,8 +6359,8 @@ index 0000000000..1d4a47f644
 +	/* using partition name in partition tables */
 +	ret = get_part_info_from_tbl(dev_desc, part_num, info);
 +	if (ret) {
-+		printf ("** Partition %d not found on device %d **\n",
-+			part_num,dev_desc->devnum);
++		/*printf ("** Partition %d not found on device %d **\n",
++			part_num,dev_desc->devnum);*/
 +		return -1;
 +	}
 +
@@ -6298,7 +6404,7 @@ index 0000000000..1d4a47f644
 +	if (blk_dread(dev_desc, AML_MPT_OFFSET, 1, (ulong *) buffer) != 1)
 +		return -1;
 +	if (!strncmp(buffer, "MPT", 3))
-+		return 0;
++		return 1; // FIXME: return negative result for AML partition for normal u-boot bootsequence
 +	return 1;
 +}
 +
@@ -7273,7 +7379,7 @@ index 0000000000..73404c1dbf
 +
 diff --git a/drivers/amlogic/keymanage/key_unify.c b/drivers/amlogic/keymanage/key_unify.c
 new file mode 100644
-index 0000000000..63e9d53892
+index 0000000000..91d50b9c7b
 --- /dev/null
 +++ b/drivers/amlogic/keymanage/key_unify.c
 @@ -0,0 +1,610 @@
@@ -7458,7 +7564,7 @@ index 0000000000..63e9d53892
 +
 +    if (!dtbLoadaddr)
 +    {
-+        dtbLoadaddr = (char*) env_get_ulong("fdtaddr", 16, CONFIG_SYS_SDRAM_BASE + (16U<<20));
++        dtbLoadaddr = (char*) env_get_ulong("fdtcontroladdr", 16, CONFIG_SYS_SDRAM_BASE + (16U<<20));
 +    }
 +
 +    if (keymanage_dts_parse(dtbLoadaddr)) {
@@ -8287,10 +8393,10 @@ index 0000000000..d2a2186147
 +
 diff --git a/drivers/amlogic/keymanage/km_efuse_key.c b/drivers/amlogic/keymanage/km_efuse_key.c
 new file mode 100644
-index 0000000000..cd9e332ac4
+index 0000000000..32c373cbbb
 --- /dev/null
 +++ b/drivers/amlogic/keymanage/km_efuse_key.c
-@@ -0,0 +1,158 @@
+@@ -0,0 +1,156 @@
 +/*
 + * \file        km_efuse_key.c
 + * \brief       efuse key ops for key manage
@@ -8306,6 +8412,7 @@ index 0000000000..cd9e332ac4
 +#include <amlogic/asm/secure_apb.h>
 +#include <asm/io.h>
 +
++#include <command.h>
 +#include <amlogic/aml_efuse.h>
 +
 +#define SECURE_BOOT_KEY_NAME    "secure_boot_set"
@@ -8320,11 +8427,8 @@ index 0000000000..cd9e332ac4
 +    char ver;
 +    int ret = 0;
 +
-+    const char* dtbLoadAddr = env_get("dtb_mem_addr");
-+    if (!dtbLoadAddr) {
-+        env_set("dtb_mem_addr", simple_itoa(CONFIG_SYS_SDRAM_BASE + (16U<<20)));
-+    }
-+    dtbLoadAddr = (char*)simple_strtoul(dtbLoadAddr, NULL, 0);
++    const char* dtbLoadAddr;
++    dtbLoadAddr = (char*) env_get_ulong("fdtcontroladdr", 16, CONFIG_SYS_SDRAM_BASE + (16U<<20));
 +
 +    ret = efuse_usr_api_init_dtb(dtbLoadAddr);
 +    if (ret) {
@@ -11471,10 +11575,10 @@ index 0000000000..5560bcd384
 +}
 diff --git a/drivers/efuse/efuse_usr_space_api.c b/drivers/efuse/efuse_usr_space_api.c
 new file mode 100644
-index 0000000000..9756ebf167
+index 0000000000..cf9d8edb16
 --- /dev/null
 +++ b/drivers/efuse/efuse_usr_space_api.c
-@@ -0,0 +1,378 @@
+@@ -0,0 +1,379 @@
 +/*
 + * \file        efuse_usr_space_api.c
 + * \brief       support read/write user space using keyname mode
@@ -11493,6 +11597,7 @@ index 0000000000..9756ebf167
 +#include <malloc.h>
 +#include <linux/ctype.h>
 +#include <amlogic/asm/efuse.h>
++#include <linux/libfdt.h>
 +
 +#define EFUSE_DBG(fmt...)   //printf("[EFUSE_DBG]"fmt)
 +#define EFUSE_MSG(fmt...)   printf("[EFUSE_MSG]"fmt)
@@ -11870,10 +11975,10 @@ index 9627509302..e15653b3f3 100644
  obj-$(CONFIG_$(SPL_TPL_)BOOTSTD) += mmc_bootdev.o
 diff --git a/drivers/mmc/aml_emmc_partition.c b/drivers/mmc/aml_emmc_partition.c
 new file mode 100644
-index 0000000000..a36740750f
+index 0000000000..d27419db95
 --- /dev/null
 +++ b/drivers/mmc/aml_emmc_partition.c
-@@ -0,0 +1,1654 @@
+@@ -0,0 +1,1715 @@
 +/*
 + * Copyright 2016, Amlogic Inc
 + * yonghui.yu
@@ -11897,11 +12002,11 @@ index 0000000000..a36740750f
 +#include <amlstorage/emmc_partitions.h>
 +#include <amlogic/cpu_id.h>
 +#include <part_efi.h>
-+
++#include <asm/global_data.h>
 +
 +DECLARE_GLOBAL_DATA_PTR;
 +/* using mbr*/
-+#define CONFIG_PTBL_MBR	(0)
++#define CONFIG_PTBL_MBR	(1)
 +#if (CONFIG_PTBL_MBR)
 +	/* cmpare partition name? */
 +	#define CONFIG_CMP_PARTNAME	(0)
@@ -12151,8 +12256,15 @@ index 0000000000..a36740750f
 +		}
 +		/* parse it */
 +		if (get_partition_from_dts(buffer)) {
-+			apt_err("get partition table from dts faild\n");
-+			goto _err1;
++			apt_err("get partition table from dts failed. try from internal dts\n");
++			if (buffer)
++				free(buffer);
++			buffer = (char*) env_get_ulong("fdtcontroladdr", 16, CONFIG_SYS_SDRAM_BASE + (16U<<20));
++			if (get_partition_from_dts(buffer)) {
++				apt_err("get partition table from internal dts failed.\n");
++				goto _err;
++			}
++			buffer = NULL;
 +		}
 +		/* double check part_table(glb) */
 +		if (NULL == get_partitions()) {
@@ -12160,7 +12272,8 @@ index 0000000000..a36740750f
 +		}
 +		apt_info("get partition table from dts successfully\n");
 +
-+		free(buffer);
++		if (buffer)
++			free(buffer);
 +		buffer = NULL;
 +	}
 +#endif
@@ -12724,8 +12837,9 @@ index 0000000000..a36740750f
 +{
 +	int ret = 0;
 +	/* re-constructed by mbr */
-+	struct _iptbl *iptbl_mbr = NULL;
++	struct _iptbl *iptbl_mbr = NULL, *ept2 = NULL;
 +	struct partitions *partitions = NULL;
++	int i,j;
 +
 +	iptbl_mbr = malloc(sizeof(struct _iptbl));
 +	if (NULL == iptbl_mbr) {
@@ -12743,14 +12857,42 @@ index 0000000000..a36740750f
 +	iptbl_mbr->partitions = partitions;
 +
 +	_construct_ptbl_by_mbr(mmc, iptbl_mbr);
++        if (iptbl_mbr->count > 0)
++	{
++		ret = 0;
++		goto _check_return;
++	}
 +
-+	ret = _cmp_iptbl(iptbl_mbr, ept);
++	ept2 = (struct _iptbl*) malloc(sizeof(struct _iptbl));
++	if (!ept2) 
++		return -1;
++
++	ept2 -> partitions = (struct partitions*) malloc (sizeof(struct partitions) * ept->count);
++	if (!ept2->partitions) 
++		return -1;
++	memset (ept2->partitions, 0, sizeof(struct partitions) * ept->count);
++	ept2 -> count = 0;
++
++	for (i=4,j=0;i<ept->count;i++)
++	{
++		apt_info("-!check partition name %s\n",ept->partitions[i].name);
++		memcpy(&ept2->partitions[j],&ept->partitions[i], sizeof(struct partitions));
++		j++;
++
++	}
++	ept2->count = j;
++
++	ret = _cmp_iptbl(iptbl_mbr, ept2);
++	if (ept2->partitions)
++		free (ept2->partitions);
++	if (ept2)
++		free (ept2);
 +
 +	if (partitions)
 +		free(partitions);
 +	if (iptbl_mbr)
 +		free(iptbl_mbr);
-+
++ _check_return:
 +	apt_wrn("MBR is %s\n", ret?"Improper!":"OK!");
 +	return ret;
 +}
@@ -12837,9 +12979,10 @@ index 0000000000..a36740750f
 +{
 +	int i;
 +
++        apt_info("!!!++++ %0d(%0d) my count:%i\n",part_num, p_iptbl->count,p_iptbl->count<4?p_iptbl->count:4);
 +	if (DOS_MBR == type) {
 +		/* constuct a integral MBR */
-+		for (i = 0; i<4 ; i++)
++		for (i = 0; i< ((p_iptbl->count<4)?p_iptbl->count:4) ; i++)
 +			_construct_mbr_entry(p_iptbl, &p_br->part_entry[i], i);
 +
 +	}else{
@@ -12863,19 +13006,37 @@ index 0000000000..a36740750f
 +{
 +	int ret = 0, start_blk = 0, blk_cnt = 1;
 +	unsigned char *src;
-+	int i;
++	int i,j;
 +	struct dos_mbr_or_ebr *mbr;
 +	struct _iptbl *ptb ;
++	struct _iptbl *ptb2;
 +
 +	ptb = p_iptbl;
++	ptb2 = (struct _iptbl*) malloc(sizeof(struct _iptbl));
++
++	ptb2 -> partitions = (struct partitions*) malloc (sizeof(struct partitions) * ptb->count);
++	memset (ptb2->partitions, 0, sizeof(struct partitions) * ptb->count);
++	ptb2 -> count = 0;
++
++	for (i=4,j=0;i<ptb->count;i++)
++	{
++		apt_info("-!check partition name %s\n",ptb->partitions[i].name);
++		memcpy(&ptb2->partitions[j],&ptb->partitions[i], sizeof(struct partitions));
++		j++;
++
++	}
++	ptb2->count = j;
++	ptb = ptb2;
++
 +	mbr = malloc(sizeof(struct dos_mbr_or_ebr));
 +
 +	for (i=0;i<ptb->count;i++) {
-+		apt_info("-update MBR-: partition[%02d]: %016llx - %016llx\n",i,
-+			ptb->partitions[i].offset, ptb->partitions[i].size);
++		apt_info("-update MBR-: partition[%02d]: %016llx - %016llx skipped:%s name:%s parts count:%02d\n",i,
++			ptb->partitions[i].offset, ptb->partitions[i].size, ptb->partitions[i].size==0? "yes" :"no", ptb->partitions[i].name, ptb->count);
 +	}
 +
 +	for (i = 0;i < ptb->count;) {
++		apt_info("!!!!--- update_ptbl_mbr %02d (%02d)\n", i, ptb->count);
 +		memset(mbr ,0 ,sizeof(struct dos_mbr_or_ebr));
 +		if (i == 0) {
 +			_construct_mbr_or_ebr(ptb, mbr, i, 0);
@@ -12891,12 +13052,17 @@ index 0000000000..a36740750f
 +			break;
 +		}
 +		start_blk = (ptb->partitions[i].offset - PARTITION_RESERVED) >> 9;
++		apt_info("!!!!end update_ptbl_mbr %02d (%02d)\n", i, ptb->count);
 +	}
 +	free(mbr);
++	free(ptb->partitions);
++	free(ptb);
 +
 +	ret = !ret;
 +	if (ret)
 +		apt_err("write MBR failed!\n");
++	else
++		apt_err("write MBR ok!!!!\n");
 +
 +	return ret;
 +}
@@ -13135,7 +13301,7 @@ index 0000000000..a36740750f
 +{
 +	int ret = 1;
 +#if (CONFIG_PTBL_MBR)  || (!CONFIG_AML_PARTITION)
-+	cpu_id_t cpu_id = get_cpu_id();
++	//cpu_id_t cpu_id = get_cpu_id();
 +#endif
 +	/* partition table from dtb/code/emmc rsv */
 +	struct _iptbl iptbl_dtb, iptbl_inh;
@@ -13192,7 +13358,7 @@ index 0000000000..a36740750f
 +	} else
 +		apt_wrn("get partition table from dtb failed\n");
 +#ifndef CONFIG_AML_PARTITION
-+	if (cpu_id.family_id < MESON_CPU_MAJOR_ID_G12B) {
++	if (0) { //(cpu_id.family_id < MESON_CPU_MAJOR_ID_G12B) {
 +		printf("CONFIG_AML_PARTITION should define before G12B\n");
 +		goto _out;
 +	}
@@ -13206,6 +13372,8 @@ index 0000000000..a36740750f
 +	if (ret)
 +		goto _out;
 +	ret = get_ptbl_rsv(mmc, p_iptbl_rsv);
++        apt_info("!!!! after call get_ptbl_rsv got %i parts\n",p_iptbl_rsv->count);
++
 +	if (p_iptbl_rsv->count) {
 +		/* dtb exist, p_iptbl_ept already inited */
 +		if (iptbl_dtb.partitions) {
@@ -13215,11 +13383,7 @@ index 0000000000..a36740750f
 +			}
 +		} else {
 +			/* without dtb, update ept with rsv */
-+		#if 0
-+			p_iptbl_ept->count = p_iptbl_rsv->count;
-+			memcpy(p_iptbl_ept->partitions, p_iptbl_rsv->partitions,
-+				p_iptbl_ept->count * sizeof(struct partitions));
-+		#endif
++		        apt_info("!!!! call _cpy_iptbl from rsv to ept %i\n",p_iptbl_rsv->count);
 +			_cpy_iptbl(p_iptbl_ept, p_iptbl_rsv);
 +			update = 0;
 +		}
@@ -13240,8 +13404,9 @@ index 0000000000..a36740750f
 +	//apt_wrn("ept source is %s\n", (ept_source == p_iptbl_ept)?"ept":"rsv");
 +#if (CONFIG_PTBL_MBR)
 +	/* 1st sector was reserved by romboot after gxl */
-+	if (cpu_id.family_id >= MESON_CPU_MAJOR_ID_GXL) {
++	if (1) { //(cpu_id.family_id >= MESON_CPU_MAJOR_ID_GXL) {
 +		if (_check_ptbl_mbr(mmc, p_iptbl_ept)) {
++			apt_info("!!!! after _check_ptbl_mbr, see %i ept parts, check result %i\n",p_iptbl_ept->count, _check_ptbl_mbr(mmc, p_iptbl_ept));
 +			/*fixme, comaptible for mbr&ebr */
 +			ret |= _update_ptbl_mbr(mmc, p_iptbl_ept);
 +			apt_wrn("MBR Updated!\n");
@@ -13297,6 +13462,7 @@ index 0000000000..a36740750f
 +	free(disk_partition);
 +#endif
 +	/* init part again */
++	apt_info("!!!! init part again\n");
 +	part_init(mmc_get_blk_desc(mmc));
 +
 +_out:
