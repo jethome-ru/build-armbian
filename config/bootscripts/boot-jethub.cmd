@@ -55,6 +55,13 @@ fdt addr ${fdt_addr_r}
 fdt resize 65536
 
 echo "Checking board setup"
+
+echo "Force load D1P rtl8822cs DT overlay"
+if load ${devtype} ${devnum} ${scriptaddr} ${prefix}dtb/amlogic/overlay/jethub-d1plus.dtbo; then
+  echo "Applying kernel provided DT overlay for JetHub D1P 04:01 device"
+  fdt apply ${scriptaddr} || setenv overlay_error "true"
+fi;
+
 if test "$board" = "jethub-j100"; then
   if test "$hwrev" = "04"; then
     if test "$perev" = "01"; then
