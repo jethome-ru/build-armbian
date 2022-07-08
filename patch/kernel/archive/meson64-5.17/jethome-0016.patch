@@ -1,0 +1,25 @@
+From 6a118d3e3699e746de2a14220711f925ff1745a1 Mon Sep 17 00:00:00 2001
+From: root <root@homeserver.msync.work>
+Date: Fri, 8 Jul 2022 12:00:09 +0300
+Subject: [PATCH] Fix GPIOX_7
+
+---
+ arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
+index c408c18ff..f5d2ec667 100644
+--- a/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
++++ b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j100.dts
+@@ -107,7 +107,7 @@ usb_pwr: regulator-usb_pwr {
+ 
+ 	sdio_pwrseq: sdio-pwrseq {
+ 		compatible = "mmc-pwrseq-simple";
+-		reset-gpios = <&gpio GPIOX_7 GPIO_ACTIVE_LOW>;
++		/* reset-gpios = <&gpio GPIOX_7 GPIO_ACTIVE_LOW>; */
+ 		clocks = <&wifi32k>;
+ 		clock-names = "ext_clock";
+ 	};
+-- 
+2.30.2
+
