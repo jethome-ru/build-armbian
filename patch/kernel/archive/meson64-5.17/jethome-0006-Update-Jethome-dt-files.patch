@@ -436,7 +436,7 @@ index 000000000000..74ac147be54e
 +
 +/* wifi module */
 +&sd_emmc_b {
-+	broken-cd;/* cd-gpios = <&gpio_ao GPIOAO_3 GPIO_ACTIVE_LOW>;*/
++	broken-cd;/* cd-gpios = <&gpio_ao GPIOAO_3 GPIO_ACTIVE_LOW>; */
 +};
 +
 +/* UART Bluetooth */
@@ -478,7 +478,7 @@ index 000000000000..ed673ec5ade1
 +
 +/* wifi module */
 +&sd_emmc_b {
-+	broken-cd;/* cd-gpios = <&gpio_ao GPIOAO_3 GPIO_ACTIVE_LOW>;*/
++	broken-cd; /* cd-gpios = <&gpio_ao GPIOAO_3 GPIO_ACTIVE_LOW>; */
 +};
 diff --git a/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j1xx.dtsi b/arch/arm64/boot/dts/amlogic/meson-axg-jethome-jethub-j1xx.dtsi
 new file mode 100644
