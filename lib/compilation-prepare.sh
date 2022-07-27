@@ -246,7 +246,7 @@ compilation_prepare()
 
 	# Updated USB network drivers for RTL8152/RTL8153 based dongles that also support 2.5Gbs variants
 
-	if linux-version compare "${version}" ge 5.4 && linux-version compare "${version}" le 5.12 && [ $LINUXFAMILY != mvebu64 ] && [ $LINUXFAMILY != rk322x ] && [ $LINUXFAMILY != odroidxu4 ] && [ $EXTRAWIFI == yes ]; then
+	if linux-version compare "${version}" ge 5.4 && linux-version compare "${version}" le 5.12 && [ $LINUXFAMILY != mvebu64 ] && [ $LINUXFAMILY != rk322x ] && [ $LINUXFAMILY != odroidxu4 ] && [ $EXTRAWIFI == yes1 ]; then
 
 		# attach to specifics tag or branch
 		local rtl8152ver="branch:master"
@@ -260,7 +260,7 @@ compilation_prepare()
 
 	# Wireless drivers for Realtek 8189ES chipsets
 
-	if linux-version compare "${version}" ge 3.14 && [ "$EXTRAWIFI" == yes ]; then
+	if linux-version compare "${version}" ge 3.14 && [ "$EXTRAWIFI" == yes1 ]; then
 
 		# attach to specifics tag or branch
 		local rtl8189esver="branch:master"
@@ -295,7 +295,7 @@ compilation_prepare()
 
 	# Wireless drivers for Realtek 8189FS chipsets
 
-	if linux-version compare "${version}" ge 3.14 && [ "$EXTRAWIFI" == yes ]; then
+	if linux-version compare "${version}" ge 3.14 && [ "$EXTRAWIFI" == yes1 ]; then
 
 		# attach to specifics tag or branch
 		local rtl8189fsver="branch:rtl8189fs"
@@ -330,7 +330,7 @@ compilation_prepare()
 
 	# Wireless drivers for Realtek 8192EU chipsets
 
-	if linux-version compare "${version}" ge 3.14 && [ "$EXTRAWIFI" == yes ]; then
+	if linux-version compare "${version}" ge 3.14 && [ "$EXTRAWIFI" == yes1 ]; then
 
 		# attach to specifics tag or branch
 		local rtl8192euver="branch:realtek-4.4.x"
@@ -365,7 +365,7 @@ compilation_prepare()
 
 	# Wireless drivers for Realtek 8811, 8812, 8814 and 8821 chipsets
 
-	if linux-version compare "${version}" ge 3.14 && [ "$EXTRAWIFI" == yes ]; then
+	if linux-version compare "${version}" ge 3.14 && [ "$EXTRAWIFI" == yes1 ]; then
 
 		# attach to specifics tag or branch
 		local rtl8812auver="branch:v5.6.4.2"
@@ -398,7 +398,7 @@ compilation_prepare()
 
 
 	# Wireless drivers for Xradio XR819 chipsets
-	if linux-version compare "${version}" ge 4.19 && [[ "$LINUXFAMILY" == sunxi* ]] && [[ "$EXTRAWIFI" == yes ]]; then
+	if linux-version compare "${version}" ge 4.19 && [[ "$LINUXFAMILY" == sunxi* ]] && [[ "$EXTRAWIFI" == yes1 ]]; then
 
 		display_alert "Adding" "Wireless drivers for Xradio XR819 chipsets" "info"
 
@@ -434,7 +434,7 @@ compilation_prepare()
 
 	# Wireless drivers for Realtek RTL8811CU and RTL8821C chipsets
 
-	if linux-version compare "${version}" ge 3.14 && [ "$EXTRAWIFI" == yes ]; then
+	if linux-version compare "${version}" ge 3.14 && [ "$EXTRAWIFI" == yes1 ]; then
 
 		# attach to specifics tag or branch
 		local rtl8811cuver="commit:8c2226a74ae718439d56248bd2e44ccf717086d5"
@@ -482,7 +482,7 @@ compilation_prepare()
 
 	if linux-version compare "${version}" ge 3.14 \
 		&& linux-version compare "${version}" lt 5.15 \
-		&& [ "$EXTRAWIFI" == yes ]; then
+		&& [ "$EXTRAWIFI" == yes1 ]; then
 
 		# attach to specifics tag or branch
 		local rtl8188euver="branch:v5.7.6.1"
@@ -526,7 +526,7 @@ compilation_prepare()
 
 	# Wireless drivers for Realtek 88x2bu chipsets
 
-	if linux-version compare "${version}" ge 5.0 && [ "$EXTRAWIFI" == yes ]; then
+	if linux-version compare "${version}" ge 5.0 && [ "$EXTRAWIFI" == yes1 ]; then
 
 		# attach to specifics tag or branch
 		local rtl88x2buver="branch:5.8.7.1_35809.20191129_COEX20191120-7777"
@@ -563,10 +563,10 @@ compilation_prepare()
 
 	# Wireless drivers for Realtek 88x2cs chipsets
 
-	if linux-version compare "${version}" ge 5.9 && [ "$EXTRAWIFI" == yes ]; then
+	if linux-version compare "${version}" ge 5.9 && [ "$EXTRAWIFI" == yes1 ]; then
 
 		# attach to specifics tag or branch
-		local rtl88x2csver="branch:tune_for_jethub"
+		local rtl88x2csver="branch:tune_for_jethub_debug"
 
 		display_alert "Adding" "Wireless drivers for Realtek 88x2cs chipsets ${rtl88x2csver}" "info"
 
@@ -600,6 +600,77 @@ compilation_prepare()
 		 "$kerneldir/drivers/net/wireless/Kconfig"
 	fi
 
+	if linux-version compare "${version}" ge 5.9 && [ "$EXTRAWIFI" == yes ]; then
+
+		# attach to specifics tag or branch
+		local amlw1ver="branch:w155s-jethome"
+
+		display_alert "Adding" "Wireless drivers for AML W155S1 chipsets ${amlw1ver}" "info"
+
+		fetch_from_repo "$GITHUB_SOURCE/adeepn/w1-aml" "w1-aml" "${amlw1ver}" "yes"
+		cd "$kerneldir" || exit
+		rm -rf "$kerneldir/drivers/net/wireless/w1"
+		mkdir -p "$kerneldir/drivers/net/wireless/w1"
+		cp -R "${SRC}/cache/sources/w1-aml/${amlw1ver#*:}/project_w1"/{common,vmac,Makefile,Kconfig} \
+		"$kerneldir/drivers/net/wireless/w1"
+
+		mkdir -p "$kerneldir/include/linux/amlogic"
+		cp -R "${SRC}/cache/sources/w1-aml/${amlw1ver#*:}/include/linux/amlogic"/{aml_gpio_consumer.h,wifi_dt.h,dhd_buf.h,cpu_version.h,pwm-meson.h} \
+		"$kerneldir/include/linux/amlogic"
+
+		mkdir -p "$kerneldir/include/linux/amlogic/media/registers"
+		cp -R "${SRC}/cache/sources/w1-aml/${amlw1ver#*:}/include/linux/amlogic/media/registers/cpu_version.h" \
+		"$kerneldir/include/linux/amlogic/media/registers"
+
+		mkdir -p "$kerneldir/include/dt-bindings/pwm"
+		cp -R "${SRC}/cache/sources/w1-aml/${amlw1ver#*:}/include/dt-bindings/pwm/meson.h" \
+		"$kerneldir/include/dt-bindings/pwm"
+
+
+		# Add to section Makefile
+		echo "obj-\$(CONFIG_WLAN_VENDOR_W1) += w1/" >> "$kerneldir/drivers/net/wireless/Makefile"
+		sed -i '/source "drivers\/net\/wireless\/ti\/Kconfig"/a source "drivers\/net\/wireless\/w1\/Kconfig"' \
+		 "$kerneldir/drivers/net/wireless/Kconfig"
+
+		# Copy amlogic additional drivers
+		mkdir -p "$kerneldir/drivers/amlogic/wifi"
+		cp -R "${SRC}/cache/sources/w1-aml/${amlw1ver#*:}/amlogic/wifi"/{Kconfig,Makefile,dhd_static_buf.c,wifi_dt.c} \
+		"$kerneldir/drivers/amlogic/wifi"
+
+		mkdir -p "$kerneldir/drivers/amlogic/pwm"
+		cp -R "${SRC}/cache/sources/w1-aml/${amlw1ver#*:}/amlogic/pwm"/{Makefile,pwm-meson-sysfs.c} \
+		"$kerneldir/drivers/amlogic/pwm"
+
+		# Add additional drivers to section Makefile
+		echo "obj-\$(CONFIG_AMLOGIC_WIFI)		+= amlogic/" >> "$kerneldir/drivers/Makefile"
+		echo "obj-\$(CONFIG_AMLOGIC_WIFI)		+= wifi/" >> "$kerneldir/drivers/amlogic/Makefile"
+		echo "obj-\$(CONFIG_AMLOGIC_WIFI)		+= pwm/" >> "$kerneldir/drivers/amlogic/Makefile"
+
+		sed -i '/source "drivers\/firmware\/Kconfig"/a source "drivers\/amlogic\/wifi\/Kconfig"' \
+		 "$kerneldir/drivers/Kconfig"
+		sed -i 's/static inline struct meson_pwm \*to_meson_pwm/struct meson_pwm \*to_meson_pwm/' \
+		 "$kerneldir/drivers/pwm/pwm-meson.c"
+
+		echo "EXPORT_SYMBOL_GPL(sched_setscheduler);" >> "$kerneldir/kernel/sched/core.c"
+		# Makefile
+		#cp "${SRC}/cache/sources/rtl88x2cs/${rtl88x2csver#*:}/Makefile" \
+		#"$kerneldir/drivers/net/wireless/rtl88x2cs/Makefile"
+
+		# Kconfig
+		#sed -i 's/---help---/help/g' "${SRC}/cache/sources/rtl88x2cs/${rtl88x2csver#*:}/Kconfig"
+		#cp "${SRC}/cache/sources/rtl88x2cs/${rtl88x2csver#*:}/Kconfig" \
+		#"$kerneldir/drivers/net/wireless/rtl88x2cs/Kconfig"
+
+		# Adjust path
+		#sed -i 's/include $(src)\/rtl8822c.mk/include $(TopDIR)\/drivers\/net\/wireless\/rtl88x2cs\/rtl8822c.mk/' \
+		#"$kerneldir/drivers/net/wireless/rtl88x2cs/Makefile"
+
+		# Disable debug
+		#sed -i "s/^CONFIG_RTW_DEBUG.*/CONFIG_RTW_DEBUG = n/" \
+		#"$kerneldir/drivers/net/wireless/rtl88x2cs/Makefile"
+
+	fi
+
 
 	# Bluetooth support for Realtek 8822CS (hci_ver 0x8) chipsets
 	# For sunxi, these two patches are applied in a series.
@@ -615,7 +686,7 @@ compilation_prepare()
 
 	# Wireless drivers for Realtek 8723DS chipsets
 
-	if linux-version compare "${version}" ge 5.0 && [ "$EXTRAWIFI" == yes ]; then
+	if linux-version compare "${version}" ge 5.0 && [ "$EXTRAWIFI" == yes1 ]; then
 
 		# attach to specifics tag or branch
 		local rtl8723dsver="branch:master"
@@ -654,7 +725,7 @@ compilation_prepare()
 
 	# Wireless drivers for Realtek 8723DU chipsets
 
-	if linux-version compare $version ge 5.0 && [ "$EXTRAWIFI" == yes ]; then
+	if linux-version compare $version ge 5.0 && [ "$EXTRAWIFI" == yes1 ]; then
 
 		# attach to specifics tag or branch
 		if linux-version compare $version ge 5.12 ; then
@@ -691,7 +762,7 @@ compilation_prepare()
 
 	# Wireless drivers for Realtek 8822BS chipsets
 
-	if linux-version compare "${version}" ge 4.4 && linux-version compare "${version}" le 5.16 && [ "$EXTRAWIFI" == yes ]; then
+	if linux-version compare "${version}" ge 4.4 && linux-version compare "${version}" le 5.16 && [ "$EXTRAWIFI" == yes1 ]; then
 
 		# attach to specifics tag or branch
 		display_alert "Adding" "Wireless drivers for Realtek 8822BS chipsets ${rtl8822bsver}" "info"
