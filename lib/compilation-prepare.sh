@@ -545,42 +545,6 @@ compilation_prepare()
 
 
 
-	# Wireless drivers for Realtek 88x2bu chipsets
-
-	if linux-version compare "${version}" ge 5.0 && [ "$EXTRAWIFI" == yes ]; then
-
-		# attach to specifics tag or branch
-		local rtl88x2buver="branch:5.8.7.1_35809.20191129_COEX20191120-7777"
-
-		display_alert "Adding" "Wireless drivers for Realtek 88x2bu chipsets ${rtl88x2buver}" "info"
-
-		fetch_from_repo "$GITHUB_SOURCE/cilynx/rtl88x2bu" "rtl88x2bu" "${rtl88x2buver}" "yes"
-		cd "$kerneldir" || exit
-		rm -rf "$kerneldir/drivers/net/wireless/rtl88x2bu"
-		mkdir -p "$kerneldir/drivers/net/wireless/rtl88x2bu/"
-		cp -R "${SRC}/cache/sources/rtl88x2bu/${rtl88x2buver#*:}"/{core,hal,include,os_dep,platform,halmac.mk,rtl8822b.mk} \
-		"$kerneldir/drivers/net/wireless/rtl88x2bu"
-
-		# Makefile
-		cp "${SRC}/cache/sources/rtl88x2bu/${rtl88x2buver#*:}/Makefile" \
-		"$kerneldir/drivers/net/wireless/rtl88x2bu/Makefile"
-
-		# Kconfig
-		sed -i 's/---help---/help/g' "${SRC}/cache/sources/rtl88x2bu/${rtl88x2buver#*:}/Kconfig"
-		cp "${SRC}/cache/sources/rtl88x2bu/${rtl88x2buver#*:}/Kconfig" \
-		"$kerneldir/drivers/net/wireless/rtl88x2bu/Kconfig"
-
-		# Adjust path
-		sed -i 's/include $(src)\/rtl8822b.mk /include $(TopDIR)\/drivers\/net\/wireless\/rtl88x2bu\/rtl8822b.mk/' \
-		"$kerneldir/drivers/net/wireless/rtl88x2bu/Makefile"
-
-		# Add to section Makefile
-		echo "obj-\$(CONFIG_RTL8822BU) += rtl88x2bu/" >> "$kerneldir/drivers/net/wireless/Makefile"
-		sed -i '/source "drivers\/net\/wireless\/ti\/Kconfig"/a source "drivers\/net\/wireless\/rtl88x2bu\/Kconfig"' \
-		"$kerneldir/drivers/net/wireless/Kconfig"
-
-	fi
-
 
 	# Wireless drivers for Realtek 88x2cs chipsets
 
