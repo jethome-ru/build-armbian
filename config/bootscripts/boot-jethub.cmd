@@ -50,6 +50,9 @@ echo "Mainline bootargs: ${bootargs}"
 
 
 echo "Checking board setup"
+echo "WARNING!!! Applying as default DT kernel file for JetHub D1/P RTL8822CS device"
+setenv fdtfile "amlogic/meson-axg-jethome-jethub-j110-rev-2.dtb"
+
 if test "$board" = "jethub-j100"; then
     if test "$perev" = "02"; then
     # D1P + RTL8822CS
@@ -62,7 +65,6 @@ if test "$board" = "jethub-j100"; then
         setenv fdtfile "amlogic/meson-axg-jethome-jethub-j110-rev-3.dtb"
     fi;
 fi;
-
 
 load ${devtype} ${devnum} ${ramdisk_addr_r} ${prefix}uInitrd
 load ${devtype} ${devnum} ${kernel_addr_r} ${prefix}Image
