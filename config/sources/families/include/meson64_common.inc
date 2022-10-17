@@ -300,5 +300,5 @@ family_tweaks_bsp() {
 # If used in more than one place, it could be moved to an extension: enable_extension "amlogic-fip-tools"
 function fetch_sources_tools__amlogic_fip() {
 	fetch_from_repo "https://github.com/armbian/odroidc2-blobs" "odroidc2-blobs" "branch:master"
-	fetch_from_repo "https://github.com/jethome-iot/amlogic-boot-fip" "amlogic-boot-fip" "branch:master"
+	fetch_from_repo "https://github.com/jethome-iot/amlogic-boot-fip" "amlogic-boot-fip" "branch:j80_update_ram_config"
 }
