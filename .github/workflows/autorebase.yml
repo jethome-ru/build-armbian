@@ -23,7 +23,7 @@ jobs:
           cd rebase
           git remote remove upstream || true
       - name: Checkout armbian repository (nightly)
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           repository: jethome-ru/build-armbian
@@ -48,7 +48,7 @@ jobs:
           git remote remove upstream || true
 
       - name: Checkout armbian repository (master)
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           repository: jethome-ru/build-armbian
@@ -72,7 +72,7 @@ jobs:
           git remote remove upstream || true
 
       - name: Checkout armbian repository (v22.02)
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           repository: jethome-ru/build-armbian
@@ -97,7 +97,7 @@ jobs:
           git remote remove upstream || true
 
       - name: Checkout armbian repository (v22.05)
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           repository: jethome-ru/build-armbian
