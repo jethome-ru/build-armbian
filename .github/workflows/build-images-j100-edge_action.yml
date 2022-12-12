@@ -44,7 +44,7 @@ jobs:
 
   cli:
     needs: [ merge ]
-    uses: jethome-ru/build-armbian-scripts/.github/workflows/build-with-docker.yml@master
+    uses: jethome-ru/build-armbian-scripts/.github/workflows/build-with-docker-action.yml@master
     with:
       variant: 'cli:${{ github.event.inputs.choice }}'
       sourcerepo: '${{ github.event.inputs.sourcerepo }}'
