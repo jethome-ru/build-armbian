@@ -1,0 +1,82 @@
+name: Build JetHub Images v2
+
+on:
+  workflow_dispatch:
+    inputs:
+      choice:
+        type: choice
+        description: Build targets
+        options:
+        - beta
+        - stable
+        - rc
+        default: beta
+      board:
+        type: choice
+        description: Build for board
+        options:
+        - jethub
+        - jethubj100
+        - jethubj80
+        default: jethub
+      runner:
+        type: choice
+        description: Build runners for CLI
+        options:
+        - hirsute
+        - focal
+        default: hirsute
+      sourcerepo:
+        description: Source repository
+        required: true
+        default: 'nightly'
+jobs:
+
+  fake:
+    runs-on: [self-hosted]
+    name: Source changes
+    if: ${{ github.repository_owner == 'jethome-ru' }}
+    steps:
+      - run: |
+          echo "not empty" > changes
+      - uses: actions/upload-artifact@v3
+        with:
+          path: changes
+          name: changes
+          if-no-files-found: ignore
+
+  merge:
+    needs: [ fake ]
+    uses: jethome-ru/build-armbian/.github/workflows/autorebase.yml@main
+    secrets:
+      token: ${{ secrets.ARMBIAN_UPDATE_TOKEN }}
+
+  cli:
+    needs: [ merge ]
+    uses: jethome-ru/build-armbian-scripts/.github/workflows/build-with-docker-action.yml@master
+    with:
+      variant: 'cli:${{ github.event.inputs.choice }}'
+      sourcerepo: '${{ github.event.inputs.sourcerepo }}'
+      runner: '${{ github.event.inputs.runner }}'
+      part: 1
+      of: 1
+      include: 'grep ${{ github.event.inputs.board }} | '
+      exclude: ''
+      uploading: true
+
+    secrets:
+      TOKEN: ${{ secrets.ARMBIAN_UPDATE_TOKEN }}
+      SSHKEY: ${{ secrets.SSHKEY }}
+      SSHKNOWNHOSTS: ${{ secrets.SSHKNOWNHOSTS }}
+      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      FWUPLOAD: ${{ secrets.FWUPLOAD }}
+
+  jobsend:
+    name: finish
+    needs: [cli]
+    runs-on: [self-hosted]
+    if: ${{ github.repository_owner == 'jethome-ru' }}
+    steps:
+      - run: |
+          echo "End"
