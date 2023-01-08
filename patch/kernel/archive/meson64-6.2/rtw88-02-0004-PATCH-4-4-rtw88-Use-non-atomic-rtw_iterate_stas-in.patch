@@ -1,0 +1,36 @@
+From ce6fde32556c32c4708afd6212dab4ab2debbcce Mon Sep 17 00:00:00 2001
+From: Viacheslav Bocharov <adeep@lexina.in>
+Date: Sun, 8 Jan 2023 18:21:21 +0300
+Subject: [PATCH 4/4] [PATCH 4/4] rtw88: Use non-atomic rtw_iterate_stas() in 
+ rtw_ra_mask_info_update()
+
+---
+ drivers/net/wireless/realtek/rtw88/mac80211.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/mac80211.c b/drivers/net/wireless/realtek/rtw88/mac80211.c
+index 776a9a9884b5..3b92ac611d3f 100644
+--- a/drivers/net/wireless/realtek/rtw88/mac80211.c
++++ b/drivers/net/wireless/realtek/rtw88/mac80211.c
+@@ -737,7 +737,7 @@ static void rtw_ra_mask_info_update(struct rtw_dev *rtwdev,
+ 	br_data.rtwdev = rtwdev;
+ 	br_data.vif = vif;
+ 	br_data.mask = mask;
+-	rtw_iterate_stas_atomic(rtwdev, rtw_ra_mask_info_update_iter, &br_data);
++	rtw_iterate_stas(rtwdev, rtw_ra_mask_info_update_iter, &br_data);
+ }
+ 
+ static int rtw_ops_set_bitrate_mask(struct ieee80211_hw *hw,
+@@ -746,7 +746,9 @@ static int rtw_ops_set_bitrate_mask(struct ieee80211_hw *hw,
+ {
+ 	struct rtw_dev *rtwdev = hw->priv;
+ 
++	mutex_lock(&rtwdev->mutex);
+ 	rtw_ra_mask_info_update(rtwdev, vif, mask);
++	mutex_unlock(&rtwdev->mutex);
+ 
+ 	return 0;
+ }
+-- 
+2.30.2
+

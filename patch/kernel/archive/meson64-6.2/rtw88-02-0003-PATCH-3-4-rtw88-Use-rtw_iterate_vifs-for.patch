@@ -1,0 +1,30 @@
+From 2f121cea2eb85cb43458de68fa35211609ece3a1 Mon Sep 17 00:00:00 2001
+From: Viacheslav Bocharov <adeep@lexina.in>
+Date: Sun, 8 Jan 2023 18:20:22 +0300
+Subject: [PATCH 3/4] [PATCH 3/4] rtw88: Use rtw_iterate_vifs() for 
+ rtw_vif_watch_dog_iter()
+
+---
+ drivers/net/wireless/realtek/rtw88/main.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
+index bcdf1f8c8450..1cb553485cff 100644
+--- a/drivers/net/wireless/realtek/rtw88/main.c
++++ b/drivers/net/wireless/realtek/rtw88/main.c
+@@ -242,8 +242,10 @@ static void rtw_watch_dog_work(struct work_struct *work)
+ 	rtw_phy_dynamic_mechanism(rtwdev);
+ 
+ 	data.rtwdev = rtwdev;
+-	/* use atomic version to avoid taking local->iflist_mtx mutex */
+-	rtw_iterate_vifs_atomic(rtwdev, rtw_vif_watch_dog_iter, &data);
++	/* rtw_iterate_vifs internally uses an atomic iterator which is needed
++	 * to avoid taking local->iflist_mtx mutex
++	 */
++	rtw_iterate_vifs(rtwdev, rtw_vif_watch_dog_iter, &data);
+ 
+ 	/* fw supports only one station associated to enter lps, if there are
+ 	 * more than two stations associated to the AP, then we can not enter
+-- 
+2.30.2
+
