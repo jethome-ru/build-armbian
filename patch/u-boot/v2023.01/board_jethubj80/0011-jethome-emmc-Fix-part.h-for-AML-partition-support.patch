@@ -1,0 +1,33 @@
+From fa852a3a19a4f7c9b2270f3c5f1ca6fa73102b28 Mon Sep 17 00:00:00 2001
+From: Viacheslav Bocharov <adeep@lexina.in>
+Date: Wed, 18 Jan 2023 11:45:01 +0300
+Subject: [PATCH 11/17] jethome-emmc: Fix part.h for AML partition support
+
+Signed-off-by: Viacheslav Bocharov <adeep@lexina.in>
+---
+ include/part.h | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/include/part.h b/include/part.h
+index 807370d942..ed4e11672d 100644
+--- a/include/part.h
++++ b/include/part.h
+@@ -30,12 +30,15 @@ struct block_drvr {
+ #define PART_TYPE_ISO		0x03
+ #define PART_TYPE_AMIGA		0x04
+ #define PART_TYPE_EFI		0x05
++#define PART_TYPE_AML		0x06
+ 
+ /* maximum number of partition entries supported by search */
+ #define DOS_ENTRY_NUMBERS	8
+ #define ISO_ENTRY_NUMBERS	64
+ #define MAC_ENTRY_NUMBERS	64
+ #define AMIGA_ENTRY_NUMBERS	8
++#define AML_ENTRY_NUMBERS	128
++
+ /*
+  * Type string for U-Boot bootable partitions
+  */
+-- 
+2.34.1
+
