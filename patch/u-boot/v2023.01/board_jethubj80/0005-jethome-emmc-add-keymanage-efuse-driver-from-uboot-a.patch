@@ -1,0 +1,5604 @@
+From 4a26a496bf13d93a8dc031f3a36275a99a5dd9e1 Mon Sep 17 00:00:00 2001
+From: Viacheslav Bocharov <adeep@lexina.in>
+Date: Wed, 18 Jan 2023 11:34:40 +0300
+Subject: [PATCH 05/17] jethome-emmc: add keymanage/efuse driver from
+ uboot-amlogic
+
+Signed-off-by: Viacheslav Bocharov <adeep@lexina.in>
+---
+ drivers/Kconfig                               |   4 +
+ drivers/Makefile                              |   3 +
+ drivers/amlogic/Kconfig                       |  14 +
+ drivers/amlogic/Makefile                      |   5 +
+ drivers/amlogic/keymanage/Kconfig             |  21 +
+ drivers/amlogic/keymanage/Makefile            |  32 +
+ drivers/amlogic/keymanage/key_manage.c        | 689 ++++++++++++++++++
+ drivers/amlogic/keymanage/key_manage.h        |  61 ++
+ drivers/amlogic/keymanage/key_manage_i.h      |  65 ++
+ drivers/amlogic/keymanage/key_unify.c         | 610 ++++++++++++++++
+ drivers/amlogic/keymanage/km_dts.c            | 392 ++++++++++
+ drivers/amlogic/keymanage/km_efuse_key.c      | 156 ++++
+ drivers/amlogic/keymanage/km_provision_key.c  | 102 +++
+ drivers/amlogic/keymanage/km_secure_key.c     | 263 +++++++
+ .../amlogic/keymanage/km_secure_key_2015.c    | 118 +++
+ drivers/amlogic/storagekey/Kconfig            |   2 +
+ drivers/amlogic/storagekey/Makefile           |   3 +
+ drivers/amlogic/storagekey/normal_key.c       | 672 +++++++++++++++++
+ drivers/amlogic/storagekey/normal_key.h       |  49 ++
+ drivers/amlogic/storagekey/securestorage.c    | 389 ++++++++++
+ drivers/amlogic/storagekey/storagekey.c       | 587 +++++++++++++++
+ drivers/efuse/Kconfig                         |   4 +
+ drivers/efuse/Makefile                        |   9 +
+ drivers/efuse/aml_efuse.c                     | 123 ++++
+ drivers/efuse/bl31_apis.c                     | 474 ++++++++++++
+ drivers/efuse/efuse.c                         | 141 ++++
+ drivers/efuse/efuse_usr_space_api.c           | 379 ++++++++++
+ 27 files changed, 5367 insertions(+)
+ create mode 100644 drivers/amlogic/Kconfig
+ create mode 100644 drivers/amlogic/Makefile
+ create mode 100644 drivers/amlogic/keymanage/Kconfig
+ create mode 100644 drivers/amlogic/keymanage/Makefile
+ create mode 100644 drivers/amlogic/keymanage/key_manage.c
+ create mode 100644 drivers/amlogic/keymanage/key_manage.h
+ create mode 100644 drivers/amlogic/keymanage/key_manage_i.h
+ create mode 100644 drivers/amlogic/keymanage/key_unify.c
+ create mode 100644 drivers/amlogic/keymanage/km_dts.c
+ create mode 100644 drivers/amlogic/keymanage/km_efuse_key.c
+ create mode 100644 drivers/amlogic/keymanage/km_provision_key.c
+ create mode 100644 drivers/amlogic/keymanage/km_secure_key.c
+ create mode 100644 drivers/amlogic/keymanage/km_secure_key_2015.c
+ create mode 100644 drivers/amlogic/storagekey/Kconfig
+ create mode 100644 drivers/amlogic/storagekey/Makefile
+ create mode 100644 drivers/amlogic/storagekey/normal_key.c
+ create mode 100644 drivers/amlogic/storagekey/normal_key.h
+ create mode 100644 drivers/amlogic/storagekey/securestorage.c
+ create mode 100644 drivers/amlogic/storagekey/storagekey.c
+ create mode 100644 drivers/efuse/Kconfig
+ create mode 100644 drivers/efuse/Makefile
+ create mode 100644 drivers/efuse/aml_efuse.c
+ create mode 100644 drivers/efuse/bl31_apis.c
+ create mode 100644 drivers/efuse/efuse.c
+ create mode 100644 drivers/efuse/efuse_usr_space_api.c
+
+diff --git a/drivers/Kconfig b/drivers/Kconfig
+index 9101e538b0..892eff320f 100644
+--- a/drivers/Kconfig
++++ b/drivers/Kconfig
+@@ -152,6 +152,10 @@ source "drivers/watchdog/Kconfig"
+ 
+ source "drivers/xen/Kconfig"
+ 
++source "drivers/amlogic/Kconfig"
++
++source "drivers/efuse/Kconfig"
++
+ config PHYS_TO_BUS
+ 	bool "Custom physical to bus address mapping"
+ 	help
+diff --git a/drivers/Makefile b/drivers/Makefile
+index 83b14ef1fd..4ae118face 100644
+--- a/drivers/Makefile
++++ b/drivers/Makefile
+@@ -39,6 +39,9 @@ obj-$(CONFIG_XEN) += xen/
+ obj-$(CONFIG_$(SPL_)FPGA) += fpga/
+ obj-y += bus/
+ 
++obj-$(CONFIG_AML_DRIVER) += amlogic/
++obj-$(CONFIG_EFUSE) += efuse/
++
+ ifndef CONFIG_TPL_BUILD
+ ifndef CONFIG_VPL_BUILD
+ ifdef CONFIG_SPL_BUILD
+diff --git a/drivers/amlogic/Kconfig b/drivers/amlogic/Kconfig
+new file mode 100644
+index 0000000000..ff94c4b85e
+--- /dev/null
++++ b/drivers/amlogic/Kconfig
+@@ -0,0 +1,14 @@
++menu "AMLOGIC Drivers"
++
++config AML_DRIVER
++	bool "AML drivers Support"
++	select SHA1
++	select SHA256
++	help
++	  Enable support for the Amlogic drivers.
++
++source "drivers/amlogic/keymanage/Kconfig"
++
++source "drivers/amlogic/storagekey/Kconfig"
++
++endmenu
+diff --git a/drivers/amlogic/Makefile b/drivers/amlogic/Makefile
+new file mode 100644
+index 0000000000..544cc608b5
+--- /dev/null
++++ b/drivers/amlogic/Makefile
+@@ -0,0 +1,5 @@
++# SPDX-License-Identifier: GPL-2.0+
++
++obj-$(CONFIG_UNIFY_KEY_MANAGE) += keymanage/
++
++obj-$(CONFIG_SECURE_STORAGE) += storagekey/
+diff --git a/drivers/amlogic/keymanage/Kconfig b/drivers/amlogic/keymanage/Kconfig
+new file mode 100644
+index 0000000000..0c77689ae4
+--- /dev/null
++++ b/drivers/amlogic/keymanage/Kconfig
+@@ -0,0 +1,21 @@
++menuconfig UNIFY_KEY_MANAGE
++    bool "Amlogic unifykey"
++	depends on OF_LIBFDT
++    help
++        This enables support for keyman (Amlogic key manage),
++        A driver providing APIs for flash key and efuse key
++if UNIFY_KEY_MANAGE
++    config AML_SECURITY_KEY
++        depends on SECURE_STORAGE
++        bool "Amlogic flash key"
++        default y
++        select SHA256
++        select SHA1
++        help
++            "security key wrapper for APIs bl31"
++    config KEYMAN_PROVISION_KEY
++        bool "Amlogic burn provision key"
++        default n
++        help
++            "provision key wrapper for burn tool"
++endif #if UNIFY_KEY_MANAGE
+diff --git a/drivers/amlogic/keymanage/Makefile b/drivers/amlogic/keymanage/Makefile
+new file mode 100644
+index 0000000000..08dd44eaec
+--- /dev/null
++++ b/drivers/amlogic/keymanage/Makefile
+@@ -0,0 +1,32 @@
++#
++# (C) Copyright 2000-2007
++# Wolfgang Denk, DENX Software Engineering, wd@denx.de.
++#
++# See file CREDITS for list of people who contributed to this
++# project.
++#
++# This program is free software; you can redistribute it and/or
++# modify it under the terms of the GNU General Public License as
++# published by the Free Software Foundation; either version 2 of
++# the License, or (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 59 Temple Place, Suite 330, Boston,
++# MA 02111-1307 USA
++#
++
++obj-$(CONFIG_UNIFY_KEY_MANAGE) += aml_key_manage.o
++
++aml_key_manage-y 						 		= key_unify.o
++aml_key_manage-y 						 	   += key_manage.o
++aml_key_manage-$(CONFIG_OF_LIBFDT) 				+= km_dts.o
++aml_key_manage-$(CONFIG_EFUSE) 					+= km_efuse_key.o
++aml_key_manage-$(CONFIG_AML_SECURITY_KEY) 		+= km_secure_key.o
++aml_key_manage-$(CONFIG_KEYMAN_PROVISION_KEY) 	+= km_provision_key.o
++
+diff --git a/drivers/amlogic/keymanage/key_manage.c b/drivers/amlogic/keymanage/key_manage.c
+new file mode 100644
+index 0000000000..f8e0700b0a
+--- /dev/null
++++ b/drivers/amlogic/keymanage/key_manage.c
+@@ -0,0 +1,689 @@
++/*
++ * \file        key_encrypt_decrypt.c
++ * \brief       encrypt a key before burn to target deive,
++ *              decrypt a key after read from target device
++ *
++ * \version     1.0.0
++ * \date        15/07/17
++ * \author      Sam.Wu <yihui.wu@amlgic.com>
++ *
++ * Copyright (c) 2015 Amlogic. All Rights Reserved.
++ *
++ */
++#include "key_manage_i.h"
++#include <u-boot/sha1.h>
++#include <linux/ctype.h>
++#include <command.h>
++#include <env.h>
++#include <u-boot/sha1.h>
++
++
++#if defined(CONFIG_AML_SECURITY_KEY)
++extern int _burn_key_in_type_hdcp2(const char* keyname,
++        void* databuf, const unsigned bufLen, char* decryptBuf);
++extern int _read_key_in_type_hdcp2(const char* keyname,
++        void* databuf, const unsigned bufLen, char* decryptBuf);
++extern int _km_hdcp2_size(void);
++#else
++static int _burn_key_in_type_hdcp2(const char* keyname,
++        void* databuf, const unsigned bufLen, char* decryptBuf)
++{
++    KM_ERR("CONFIG_AML_SECURITY_KEY undefined\n");
++    return -__LINE__;
++}
++static int _read_key_in_type_hdcp2(const char* keyname,
++        void* databuf, const unsigned bufLen, char* decryptBuf)
++{
++    KM_ERR("CONFIG_AML_SECURITY_KEY undefined\n");
++    return -__LINE__;
++}
++int _km_hdcp2_size(void)
++{
++    KM_ERR("CONFIG_AML_SECURITY_KEY undefined\n");
++    return 0;
++}
++#endif// #if defined(CONFIG_AML_SECURITY_KEY)
++
++enum _KmUsrKeyType{
++    KM_USER_KEY_TYPE_MAC        = 0 ,//key format is all ascii, and splitted by :
++    KM_USER_KEY_TYPE_SHA1           ,//key format is end with 20 bytes sha1sum
++    KM_USER_KEY_TYPE_HDCP2          ,//special case, can only identified with name
++    KM_USER_KEY_TYPE_RAW            ,//raw format which can burn to target directly
++};
++
++static const char* _cfgKeyTypes[] = {
++    [KM_USER_KEY_TYPE_MAC]          = "mac"     ,
++    [KM_USER_KEY_TYPE_SHA1]         = "sha1"    ,
++    [KM_USER_KEY_TYPE_HDCP2]        = "hdcp2"   ,
++    [KM_USER_KEY_TYPE_RAW]          = "raw"     ,
++};
++#define _SUPPORTED_CFG_TYPES_NUM    ( sizeof(_cfgKeyTypes) / sizeof(char*) )
++
++
++static int km_get_user_key_format(const char* srcKeyName, int* key_type)
++{
++    int ret                 = 0;
++    int   srcKeyType        = 0;
++    const char* cfgType     = NULL;
++
++    cfgType = keymanage_dts_get_key_type (srcKeyName) ;
++    if (NULL == cfgType) {
++        KM_ERR("Fail in get keytype cfg in dts for key[%s]\n", srcKeyName);
++        return __LINE__;
++    }
++
++    for (srcKeyType = 0; srcKeyType < _SUPPORTED_CFG_TYPES_NUM; ++srcKeyType)
++    {
++        ret = strcmp(cfgType, _cfgKeyTypes[srcKeyType]);
++        if (!ret) break;
++    }
++    if (srcKeyType == _SUPPORTED_CFG_TYPES_NUM) {
++        KM_ERR("prop key-type[%s] unsupported in key[%s]\n", cfgType, srcKeyName);
++        return __LINE__;
++    }
++
++    if (KM_USER_KEY_TYPE_RAW == srcKeyType)
++    {
++        do
++        {
++            ret = !strcmp(srcKeyName, "mac") || !strcmp(srcKeyName, "mac_bt") || !strcmp(srcKeyName, "mac_wifi");
++            if (ret) { srcKeyType = KM_USER_KEY_TYPE_MAC; break; }
++
++            /*ret = !strcmp(srcKeyName, "hdcp") ;*/
++            /*if (ret) { srcKeyType = KM_USER_KEY_TYPE_SHA1; break; }*/
++
++            ret = !strcmp(srcKeyName, "hdcp2") ;
++            if (ret) { srcKeyType = KM_USER_KEY_TYPE_HDCP2; break; }
++
++        }while(0);
++    }
++
++    *key_type = srcKeyType;
++    return 0;
++}
++
++#if 1//START MAC
++const int _UsrMacKeyLen = 17;
++
++//key manager user interface: mac format check and change format if needed
++static int _burn_key_in_type_mac(const char* keyname, const char* srcKeyVal, const unsigned srcKeyLen, void* decryptBuf)
++{
++    int ret = 0;
++    int index = 0;
++    ssize_t     targetKeyLen    = 0;
++    char*       dstKeyVal       = (char*)decryptBuf;
++
++    if (_UsrMacKeyLen != srcKeyLen) {
++        KM_ERR("mac len %d is invalid, must be %d\n", srcKeyLen, _UsrMacKeyLen);
++        return -EINVAL;
++    }
++
++    for (index = 0; index < _UsrMacKeyLen; index += 3)
++    {
++        int k = 0;
++        const char* p = srcKeyVal + index;
++        for (k = 0; k < 2; ++k) {
++            const char c = *p++;
++            if (!isxdigit(c)) {
++                KM_ERR("mac str(%s) fmt err at index[%d]\n", srcKeyVal, index + k);
++                return __LINE__;
++            }
++        }
++        if (':' != *p && index + k < _UsrMacKeyLen) {
++            KM_ERR("mac str(%s) fmt err at index[%d], must be :, but %c\n", srcKeyVal, index + 2, *p);
++            return __LINE__;
++        }
++    }
++
++    enum key_manager_dev_e keyDev = keymanage_dts_get_key_device(keyname);
++    if (KEY_M_MAX_DEV == keyDev) {
++        KM_ERR("Fail get key dev for key[%s]\n", keyname);
++        return __LINE__;
++    }
++    if (KEY_M_EFUSE_NORMAL != keyDev) { targetKeyLen = _UsrMacKeyLen; }
++    else
++    {//efusekey, check configure size
++        ret = key_unify_query_size(keyname, &targetKeyLen);
++        if (ret) {
++            KM_ERR("Fail at get key size, ret=%d\n", ret);
++            return __LINE__;
++        }
++
++        if (6 != targetKeyLen && targetKeyLen != _UsrMacKeyLen) {
++            KM_ERR("efuse key[%s] len %zd err\n", keyname, targetKeyLen);
++            return __LINE__;
++        }
++    }
++
++    if (_UsrMacKeyLen == targetKeyLen) {//say its target not efuse ?
++        ret =  key_unify_write(keyname, srcKeyVal, srcKeyLen);
++        return ret;
++    }
++
++    KM_DBG("targetKeyLen=%zd\n", targetKeyLen);
++    for (index = 0; index < targetKeyLen; ++index) {
++        char theByteStr[4] ;
++        theByteStr[0] = srcKeyVal[index * 3 + 0];
++        theByteStr[1] = srcKeyVal[index * 3 + 1];
++        theByteStr[2] = '\0';
++        unsigned byteSum = 0;
++
++        byteSum = simple_strtoul(theByteStr, NULL, 16);
++        KM_DBG("byteSum[%d]=0x%x\n", index, byteSum);
++        if (byteSum > 0xff) {
++            KM_ERR("theByteStr=%s err\n", theByteStr);
++            return __LINE__;
++        }
++        dstKeyVal[index] = byteSum;
++    }
++
++    ret = key_unify_write(keyname, dstKeyVal, targetKeyLen);
++    return ret;
++}
++
++//Return value: key size that user wanted, ok if > 0
++static int _read_key_in_type_mac(const char* keyname, char* databuf, const unsigned bufLen, char* decryptBuf)
++{
++    int ret = 0;
++    int index = 0;
++    ssize_t keyDevSz = 0;
++
++    if (_UsrMacKeyLen > bufLen) {
++        KM_ERR("mac len %d is invalid, must be %d\n", bufLen, _UsrMacKeyLen);
++        return -__LINE__;
++    }
++
++    ret = key_unify_query_size (keyname, &keyDevSz) ;
++    if (ret) {
++        KM_ERR("Fail in get key sz, ret=%d\n", ret);
++        return -__LINE__;
++    }
++
++    ret = key_unify_read (keyname, decryptBuf, (unsigned)keyDevSz) ;
++    if (ret) {
++        KM_ERR("fail in read key[%s]\n", keyname);
++        return -__LINE__;
++    }
++
++    if (_UsrMacKeyLen == keyDevSz) {
++        memcpy(databuf, decryptBuf, keyDevSz);
++        return 0;
++    }
++
++    databuf[0] = '\0';
++    for (index = 0; index < keyDevSz; ++index)
++    {
++        const unsigned byteSum = decryptBuf[index];
++
++        sprintf(databuf, "%s%02x:", databuf, byteSum);
++    }
++
++    return ret;
++}
++#endif//END MAC
++
++#if 1//Start sha1sum
++//key value which end up 20 bytes sha1sum
++//check the sha1sum and remove it after checked ok
++static int _burn_key_in_type_sha1(const char* keyname, void* databuf, const unsigned bufLen, char* decryptBuf)
++{
++    int ret = 0;
++    const unsigned srcKeyLen    = bufLen;
++    const char* srcKeyVal       = (char*)databuf;
++    const unsigned shaSumLen = 20;
++    const unsigned licLen = srcKeyLen - shaSumLen;
++    const u8* orgSum = (u8*)srcKeyVal + licLen;
++    u8 genSum[shaSumLen];
++
++    if (srcKeyLen <= 20) {
++        KM_ERR("Err key len %d for sha1 fmt\n", srcKeyLen);
++        return __LINE__;
++    }
++
++    sha1_csum((u8*)srcKeyVal, licLen, genSum);
++
++    ret = memcmp(orgSum, genSum, shaSumLen);
++    if (ret) {
++        const unsigned fmtStrLen = shaSumLen * 2 + 2;
++        char org_sha1Str[fmtStrLen + 2];
++        char gen_sha1Str[fmtStrLen + 2];
++        int byteIndex = 0;
++
++        org_sha1Str[0] = gen_sha1Str[0] = '\0';
++        for (byteIndex = 0; byteIndex < shaSumLen; ++byteIndex)
++        {
++            sprintf(org_sha1Str, "%s%02x", org_sha1Str, orgSum[byteIndex]);
++            sprintf(gen_sha1Str, "%s%02x", gen_sha1Str, genSum[byteIndex]);
++        }
++        KM_ERR("sha1sum, orgSum[%s] != genSum[%s]\n", org_sha1Str, gen_sha1Str);
++
++        return __LINE__;
++    }
++    KM_MSG("Verify key with sha1sum OK\n");
++
++    ret = key_unify_write(keyname, srcKeyVal, licLen);
++    return ret;
++}
++#endif//END sha1sum
++/* *
++ * APIs of key manage
++*/
++
++int key_manage_init(const char* seednum, const char* dtbaddr)
++{
++    int ret = key_unify_init(seednum, dtbaddr);
++
++    return ret;
++}
++
++int key_manage_exit(void)
++{
++    return key_unify_uninit();
++}
++
++int key_manage_write(const char* keyname, const void* keydata, const unsigned dataLen)
++{
++    int ret = 0;
++    int srcKeyType;
++    char* decryptBuf = NULL;
++    const int DecryptBufMaxLen = 64<<10;
++
++    ret = key_unify_query_key_has_configure(keyname);
++    if (!ret) {
++        KM_ERR ("There isn't cfg for key[%s]\n", keyname) ;
++        return __LINE__;
++    }
++
++    ret = km_get_user_key_format(keyname, &srcKeyType);
++    if (ret) {
++        KM_ERR ("Fail in get user key type\n") ;
++        return __LINE__;
++    }
++
++    decryptBuf = (char*)malloc(DecryptBufMaxLen);
++    switch (srcKeyType)
++    {
++        case KM_USER_KEY_TYPE_MAC:
++            {
++                ret = _burn_key_in_type_mac(keyname, (char*)keydata, dataLen, decryptBuf);
++            }
++            break;
++
++        case KM_USER_KEY_TYPE_SHA1:
++            {
++                ret = _burn_key_in_type_sha1(keyname, (char*)keydata, dataLen, decryptBuf);
++            }
++            break;
++
++        case KM_USER_KEY_TYPE_HDCP2:
++            {
++                ret = _burn_key_in_type_hdcp2(keyname, (char*)keydata, dataLen, decryptBuf);
++            }
++            break;
++
++        case KM_USER_KEY_TYPE_RAW:
++            {
++                ret = key_unify_write(keyname, (char*)keydata, dataLen);
++            }
++            break;
++    }
++
++    free(decryptBuf);
++    return ret;
++}
++
++int key_manage_read(const char* keyname, void* keydata, const unsigned bufLen)
++{
++    int ret = 0;
++    ssize_t keysize = 0;
++    int srcKeyType = 0;
++    char* decryptBuf = NULL;
++    const int DecryptBufMaxLen = 64<<10;
++
++    ret = key_manage_query_size(keyname, &keysize);
++    if (ret) {
++        KM_ERR ("Fail in query key size for key[%s]\n", keyname) ;
++        return __LINE__;
++    }
++    if (keysize > bufLen) {
++        KM_ERR ("keysize %zd > bufLen %d\n", keysize, bufLen) ;
++        return __LINE__;
++    }
++
++    ret = km_get_user_key_format(keyname, &srcKeyType);
++    if (ret) {
++        KM_ERR ("Fail in get user key type\n") ;
++        return __LINE__;
++    }
++
++    decryptBuf = (char*)malloc(DecryptBufMaxLen);
++    switch (srcKeyType)
++    {
++        case KM_USER_KEY_TYPE_MAC:
++            {
++                ret = _read_key_in_type_mac(keyname, (char*)keydata, (unsigned)keysize, decryptBuf);
++            }
++            break;
++
++        case KM_USER_KEY_TYPE_HDCP2:
++            {
++                ret = _read_key_in_type_hdcp2(keyname, keydata, (unsigned)keysize, decryptBuf);
++            }
++            break;
++
++        case KM_USER_KEY_TYPE_SHA1:
++        case KM_USER_KEY_TYPE_RAW:
++        default:
++            {
++                ret = key_unify_read(keyname, keydata, (unsigned)keysize);
++            }
++            break;
++    }
++
++    free(decryptBuf);
++    return ret;
++}
++
++int key_manage_query_size(const char* keyname, ssize_t* keysize)
++{
++    int ret = 0;
++    int exist = 0;
++    int srcKeyType = 0;
++
++    ret = key_manage_query_exist(keyname, &exist);
++    if (ret) {
++        KM_ERR ("Fail in query key exist\n") ;
++        return __LINE__;
++    }
++    if (!exist) {
++        KM_ERR ("key[%s] not programed yet\n", keyname) ;
++        return __LINE__;
++    }
++
++    ret = km_get_user_key_format(keyname, &srcKeyType);
++    if (ret) {
++        KM_ERR ("Fail in get user key type\n") ;
++        return __LINE__;
++    }
++
++    switch (srcKeyType)
++    {
++        case KM_USER_KEY_TYPE_MAC:
++            {
++                *keysize = _UsrMacKeyLen;
++            }
++            break;
++
++        case KM_USER_KEY_TYPE_HDCP2:
++            {
++                *keysize = _km_hdcp2_size();
++            }
++            break;
++
++        case KM_USER_KEY_TYPE_RAW:
++        case KM_USER_KEY_TYPE_SHA1:
++        default:
++            ret = key_unify_query_size(keyname, keysize);
++    }
++
++    return ret;
++}
++
++int key_manage_query_exist(const char* keyname, int* exist)
++{
++    int ret = 0;
++
++    ret = key_unify_query_key_has_configure(keyname);
++    if (!ret) {
++        KM_ERR ("There isn't dts cfg for key[%s]\n", keyname) ;
++        return __LINE__;
++    }
++
++    ret = key_unify_query_exist(keyname, exist);
++
++    return ret;
++}
++
++int key_manage_query_secure(const char* keyname, int* isSecure)
++{
++    int ret = 0;
++    int exist = 0;
++
++    ret = key_manage_query_exist(keyname, &exist);
++    if (ret) {
++        KM_ERR ("Fail in query key exist, ret=%d\n", ret) ;
++        return __LINE__;
++    }
++    if (!exist) {
++        KM_ERR ("Key[%s] not programed yet\n", keyname) ;
++        return __LINE__;
++    }
++
++    ret = key_unify_query_secure(keyname, isSecure);
++
++    return ret;
++}
++
++int key_manage_query_canOverWrite(const char* keyname, int* canOverWrite)
++{
++    return key_unify_query_canOverWrite(keyname, canOverWrite);
++}
++
++static int do_keyman_init(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
++{
++    int ret = 0;
++    const char* seedNum = argv[1];
++    const char* dtbAddr = argc > 2 ? argv[2] : NULL;
++
++    if (argc < 2) return CMD_RET_USAGE;
++
++    ret = key_manage_init(seedNum, dtbAddr);
++    return ret;
++}
++
++static int do_keyman_exit(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
++{
++    return key_manage_exit();
++}
++
++//read keyname addr <fmt>
++//fmt can be hex/str, if str, env keyname will be setted
++static int do_keyman_read(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
++{
++    int ret = 0;
++    const char* keyname = argv[1];
++    char* dataBuf = NULL;
++    const char* dataFmt = argc > 3 ? argv[3] : NULL;
++    ssize_t keyLen = 0;
++    if (argc < 3) return CMD_RET_USAGE;
++
++    dataBuf = (char*)simple_strtoul(argv[2], NULL, 16);
++    if (!dataBuf) {
++        KM_ERR("Fail in parse argv[2] to dataBuf\n");
++        return __LINE__;
++    }
++
++    ret = key_manage_query_size(keyname, &keyLen);
++    if (ret) {
++        KM_DBG("Fail get sz for[%s]\n", keyname);//here occure in booting if key not burned yet!
++        return __LINE__;
++    }
++    ret = key_manage_read(keyname, dataBuf, keyLen);
++    if (ret) {
++        KM_ERR("Fail in read key[%s] at sz %zd\n", keyname, keyLen);
++        return __LINE__;
++    }
++    if (dataFmt)
++    {
++        if (!strcmp("hex", dataFmt))
++        {
++            _keyman_buf_to_hex_ascii((uint8_t*)dataBuf, keyLen, NULL);
++            return 0;
++        }
++        else if(!strcmp("str", dataFmt))
++        {
++            int i = 0;
++
++            dataBuf[keyLen] = '\0';
++            for (; i < keyLen; ++i) {
++                ret = isascii(dataBuf[i]);
++                if (!ret) {
++                    KM_MSG("key value has non ascii, can't pr\n");
++                    return CMD_RET_FAILURE;
++                }
++            }
++            env_set(keyname, dataBuf);//setenv for bootargs
++            KM_DBG("env:%s=%s\n", keyname, dataBuf);
++            return 0;
++        }
++        else KM_MSG("Err key dataFmt(%s)\n", dataFmt);
++    }
++
++    return ret ? CMD_RET_FAILURE : CMD_RET_SUCCESS;
++}
++
++//argv: 1       2       3
++//write keyname size    addr
++//write keyname hex/str value
++static int do_keyman_write(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
++{
++    int ret = 0;
++    const char* keyname     = argv[1];
++    const char* databuf     = NULL;
++    char*       tmpBuf      = NULL;
++    const char* inputFmt    = argv[2];
++    unsigned    dataLen     = 0;
++    if (argc < 4) return CMD_RET_USAGE;
++
++    if (!strcmp("hex", inputFmt))
++    {
++        databuf = argv[3];
++        dataLen = strlen(databuf) / 2;
++
++        tmpBuf = (char*)malloc(dataLen);
++        ret = _keyman_hex_ascii_to_buf(databuf, tmpBuf, dataLen);
++        if (ret) {
++            KM_ERR("Fail in change hex argv[3] to bin, err=%d\n", ret);
++            free(tmpBuf);
++            return CMD_RET_FAILURE;
++        }
++        databuf = tmpBuf;
++    }
++    else if(!strcmp("str", inputFmt))
++    {
++        databuf = argv[3];
++        dataLen = strlen(databuf);
++
++        const char* p = databuf;
++        for (; *p; ++p) {
++            if (!isascii(*p)) {
++                KM_ERR("inputFmt is %s, but argv[3] contain non ascii\n", inputFmt);
++                return CMD_RET_FAILURE;
++            }
++        }
++        KM_DBG("str:%s, len=%d\n", databuf, dataLen);
++    }
++    else
++    {
++        dataLen = simple_strtoul(argv[2], NULL, 0);
++        if (!dataLen) {
++            KM_ERR("dataLen err\n");
++            return __LINE__;
++        }
++        if (dataLen > (64*1024)) {
++            KM_ERR("keylen 0x%x too large!\n", dataLen);
++            return __LINE__;
++        }
++        databuf = (char*)simple_strtoul(argv[3], NULL, 16);
++    }
++
++    ret = key_manage_write(keyname, databuf, dataLen);
++    if (tmpBuf) free(tmpBuf) ;
++    return ret ? CMD_RET_FAILURE : CMD_RET_SUCCESS;
++}
++
++//query: 1          2
++//      exist       keyname
++//      secure      keyname
++//      size        keyname
++static int do_keyman_query(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
++{
++    int ret = 0;
++    const char* cmd     = argv[1];
++    const char* keyname = argv[2];
++    if (argc < 3) return CMD_RET_USAGE;
++
++    if (!strcmp("exist", cmd))
++    {
++        int exist = 0;
++        ret = key_manage_query_exist(keyname, &exist);
++        if (ret) {
++            KM_ERR("Fail in query key exist, err=%d", ret);
++            return CMD_RET_FAILURE;
++        }
++        KM_MSG("key[%s] is %s Exist\n", keyname, exist ? "" : "NOT");
++        ret = exist ? CMD_RET_SUCCESS : CMD_RET_FAILURE;
++    }
++    else if(!strcmp("secure", cmd))
++    {
++        int isSecure = 0;
++        ret = key_manage_query_secure(keyname, &isSecure);
++        if (ret) {
++            KM_ERR("Fail in query key secure, err=%d\n", ret);
++            return CMD_RET_FAILURE;
++        }
++        KM_MSG("key[%s] is %s Secure\n", keyname, isSecure ? "" : "NOT");
++        ret = isSecure ? CMD_RET_SUCCESS : CMD_RET_FAILURE;
++    }
++    else if(!strcmp("size", cmd))
++    {
++        ssize_t keysize = 0;
++        ret = key_manage_query_size(keyname, &keysize);
++        if (ret) {
++            KM_ERR("Fail in query key size, err=%d\n", ret);
++            return CMD_RET_FAILURE;
++        }
++        KM_MSG("key[%s] size is %zd\n", keyname, keysize);
++        ret = keysize ? CMD_RET_SUCCESS : CMD_RET_FAILURE;
++    }
++    else return CMD_RET_USAGE;
++
++    return ret;
++}
++
++static struct cmd_tbl cmd_keyman_sub[] = {
++    U_BOOT_CMD_MKENT(init,          3, 0, do_keyman_init, "", ""),
++    U_BOOT_CMD_MKENT(exit,          2, 0, do_keyman_exit, "", ""),
++    U_BOOT_CMD_MKENT(read,          4, 0, do_keyman_read, "", ""),
++    U_BOOT_CMD_MKENT(write,         4, 0, do_keyman_write, "", ""),
++    U_BOOT_CMD_MKENT(query,         3, 0, do_keyman_query, "", ""),
++};
++
++static int do_keymanage(struct cmd_tbl * cmdtp, int flag, int argc, char * const argv[])
++{
++    struct cmd_tbl *c;
++
++    if (argc < 2) return CMD_RET_USAGE;
++
++    c = find_cmd_tbl(argv[1], cmd_keyman_sub, ARRAY_SIZE(cmd_keyman_sub));
++
++	if (!c) { return CMD_RET_USAGE;}
++
++    return	c->cmd(cmdtp, flag, --argc, ++argv);
++}
++
++U_BOOT_CMD(
++   keyman,           //command name
++   5,                   //maxargs
++   0,                   //repeatable
++   do_keymanage,   //command function
++   "Unify key ops interfaces based dts cfg",           //description
++   "    argv:  \n"   //usage
++   "    init seedNum <dtbAddr>\n"
++   "    read keyname addr <hex/str>\n"
++   "    write keyname size addr \n"
++   "    write keyname hex/str value\n"
++   "    query exist/secure/size keyname\n"
++   "    exit \n"
++);
++
+diff --git a/drivers/amlogic/keymanage/key_manage.h b/drivers/amlogic/keymanage/key_manage.h
+new file mode 100644
+index 0000000000..ab482f45a0
+--- /dev/null
++++ b/drivers/amlogic/keymanage/key_manage.h
+@@ -0,0 +1,61 @@
++#ifndef __KEY_MANAGE_H__
++#define __KEY_MANAGE_H__
++
++enum key_manager_dev_e{
++    KEY_M_UNKNOW_DEV=0,
++    KEY_M_EFUSE_NORMAL,
++    KEY_M_SECURE_KEY,       //secure nandkey/emmckey
++    KEY_M_NORAML_KEY,       //non-secure nandkey/emmckey
++    KEY_M_PROVISION_KEY,    //provision key
++    KEY_M_MAX_DEV,
++};
++
++/*key data format*/
++enum key_manager_df_e{
++       KEY_M_HEXDATA=0,
++       KEY_M_HEXASCII,
++       KEY_M_ALLASCII,
++       KEY_M_MAX_DF,
++};
++
++enum key_manager_permit_e{
++       KEY_M_PERMIT_READ = (1<<0),
++       KEY_M_PERMIT_WRITE = (1<<1),
++       KEY_M_PERMIT_DEL    = (1<<2),
++       KEY_M_PERMIT_MASK   = 0Xf,
++};
++
++enum key_manager_type_e{
++    KEY_M_TYPE_NORMAL       = 0 ,
++    KEY_M_TYPE_MAC              ,
++    KEY_M_TYPE_SHA1             ,
++    KEY_M_TYPE_HDCP2            ,
++
++    KEY_M_TYPE_TOTAL_NUM
++};
++
++#define KEY_UNIFY_NAME_LEN	    48
++#define KEY_UNIFY_TYPE_LEN_MAX  ( 16 - 1 )
++
++struct key_item_t{
++    char name[KEY_UNIFY_NAME_LEN];
++    char keyType[KEY_UNIFY_TYPE_LEN_MAX + 1];//mac/sha1/hdcp2/normal
++    char encType[KEY_UNIFY_TYPE_LEN_MAX + 1];//mac/sha1/hdcp2/normal
++    int id;
++    unsigned int dev; //key save in device //efuse,
++    unsigned int datFmt;  //data format
++    unsigned int permit;
++    int flag;
++    int reserv;//reserve and align to 64
++};
++
++struct key_info_t{
++    int key_num;
++    int efuse_version;
++    int key_flag;
++    int encrypt_type;
++};
++
++
++#endif // #ifndef __KEY_MANAGE_H__
++
+diff --git a/drivers/amlogic/keymanage/key_manage_i.h b/drivers/amlogic/keymanage/key_manage_i.h
+new file mode 100644
+index 0000000000..73404c1dbf
+--- /dev/null
++++ b/drivers/amlogic/keymanage/key_manage_i.h
+@@ -0,0 +1,65 @@
++/*
++ * \file        key_manage_i.h
++ * \brief       common included files for key manager
++ *
++ * \version     1.0.0
++ * \date        15/06/30
++ * \author      Sam.Wu <yihui.wu@amlgic.com>
++ *
++ * Copyright (c) 2015 Amlogic. All Rights Reserved.
++ *
++ */
++#ifndef __KEY_MANAGE_I_H__
++#define __KEY_MANAGE_I_H__
++
++#include <config.h>
++#include <common.h>
++#include <linux/string.h>
++#include <errno.h>
++#include <malloc.h>
++#include "key_manage.h"
++#include <amlogic/keyunify.h>
++#include <amlogic/amlkey_if.h>
++
++#define KM_DBG(fmt ...)     //printf("[KM]Dbg:"fmt)
++#define KM_MSG(fmt ...)     printf("[KM]Msg:"fmt)
++#define KM_ERR(fmt ...)     printf("[KM]Error:f[%s]L%d:", __func__, __LINE__),printf(fmt)
++
++int _keyman_hex_ascii_to_buf(const char* input, char* buf, const unsigned bufSz);
++int _keyman_buf_to_hex_ascii(const uint8_t* pdata, const unsigned dataLen, char* fmtStr/*pr if NULL*/);
++
++int keymanage_dts_parse(const void* dt_addr);
++enum key_manager_df_e keymanage_dts_get_key_fmt(const char *keyname);
++enum key_manager_dev_e keymanage_dts_get_key_device(const char *keyname);
++const char* keymanage_dts_get_key_type(const char* keyname);
++const char* keymanage_dts_get_enc_type(const char* keyname);
++char unifykey_get_efuse_version(void);
++int unifykey_get_encrypt_type(void);
++
++int keymanage_efuse_init(const char *buf, int len);
++int keymange_efuse_exit(void);
++int keymanage_efuse_write(const char *keyname, const void* keydata, unsigned int datalen);
++int keymanage_efuse_exist(const char* keyname);
++ssize_t keymanage_efuse_size(const char* keyname);
++int keymanage_efuse_query_can_read(const char* keyname);
++int keymanage_efuse_read(const char *keyname, void* databuf, const unsigned bufsz);
++
++int keymanage_securekey_init(const char* buf, int len);
++int keymanage_securekey_exit(void);
++int keymanage_secukey_write(const char *keyname, const void* keydata, unsigned int datalen);
++ssize_t keymanage_secukey_size(const char* keyname);
++int keymanage_secukey_exist(const char* keyname);
++int keymanage_secukey_can_read(const char* keyname);
++int keymanage_secukey_read(const char* keyname, void* databuf,  unsigned buflen);
++
++//provision key ops
++int keymanage_provision_init(const char *buf, int len);
++int keymanage_provision_exit(void);
++int keymanage_provision_write(const char *keyname, const void* keydata, unsigned int datalen);
++ssize_t keymanage_provision_size(const char* keyname);
++int keymanage_provision_exist(const char* keyname);
++int keymanage_provision_query_can_read(const char* keyname);
++int keymanage_provision_read(const char *keyname, void* databuf, const unsigned bufSz);
++
++#endif//#ifndef __KEY_MANAGE_I_H__
++
+diff --git a/drivers/amlogic/keymanage/key_unify.c b/drivers/amlogic/keymanage/key_unify.c
+new file mode 100644
+index 0000000000..91d50b9c7b
+--- /dev/null
++++ b/drivers/amlogic/keymanage/key_unify.c
+@@ -0,0 +1,610 @@
++/*
++ * Unify interfaces for read/write nandkey/emmckey/efuse key
++ */
++#include "key_manage_i.h"
++#include <amlogic/keyunify.h>
++#include <linux/ctype.h>
++#include <command.h>
++#include <env.h>
++
++#define KEY_NO_EXIST	0
++#define KEY_BURNED		1
++
++#define KEY_READ_PERMIT		10
++#define KEY_READ_PROHIBIT	11
++
++#define KEY_WRITE_MASK		(0x0f<<4)
++#define KEY_WRITE_PERMIT	(10<<4)
++#define KEY_WRITE_PROHIBIT	(11<<4)
++
++typedef struct _devKeyOps{
++    int     (*pInitFunc) (const char* buf, int len);
++    int     (*pUninitFunc)(void);
++    int     (*pWriteFunc)(const char *keyname, const void* keydata, unsigned int datalen);
++    ssize_t (*pGetSize)(const char* keyname);
++    int     (*pKeyExist)(const char* keyname);
++    int     (*pKeyCanRead)(const char* keyname);
++    int     (*pReadFunc)(const char* keyname, void* dataBuf,  unsigned buflen);
++
++    //Fields:
++    int     can_overwrite;//is OTP
++
++}KmDevKeyOps;
++
++static KmDevKeyOps _SecukeyOps = {
++        .pInitFunc           = keymanage_securekey_init        ,
++        .pUninitFunc         = keymanage_securekey_exit        ,
++        .pWriteFunc          = keymanage_secukey_write         ,
++        .pGetSize            = keymanage_secukey_size          ,
++        .pKeyExist           = keymanage_secukey_exist         ,
++        .pKeyCanRead         = keymanage_secukey_can_read      ,
++        .pReadFunc           = keymanage_secukey_read          ,
++
++        .can_overwrite       = 1                               ,
++};
++
++#if defined(CONFIG_EFUSE)
++static KmDevKeyOps _efuseKeyOps = {
++        .pInitFunc           = keymanage_efuse_init            ,
++        .pUninitFunc         = keymange_efuse_exit             ,
++        .pWriteFunc          = keymanage_efuse_write           ,
++        .pGetSize            = keymanage_efuse_size            ,
++        .pKeyExist           = keymanage_efuse_exist           ,
++        .pKeyCanRead         = keymanage_efuse_query_can_read  ,
++        .pReadFunc           = keymanage_efuse_read            ,
++
++        .can_overwrite       = 0                               ,
++};
++#endif//#if defined(CONFIG_EFUSE)
++
++#if defined(CONFIG_KEYMAN_PROVISION_KEY)
++static KmDevKeyOps _provisionKeyOps = {
++        .pInitFunc           = keymanage_provision_init             ,
++        .pUninitFunc         = keymanage_provision_exit             ,
++        .pWriteFunc          = keymanage_provision_write            ,
++        .pGetSize            = keymanage_provision_size             ,
++        .pKeyExist           = keymanage_provision_exist            ,
++        .pKeyCanRead         = keymanage_provision_query_can_read   ,
++        .pReadFunc           = keymanage_provision_read             ,
++
++        .can_overwrite       = 1                                    ,
++};
++#endif//#if defined(CONFIG_KEYMAN_PROVISION_KEY)
++
++#define _KM_DEV_INDEX_SECUREKEY         0
++#define _KM_DEV_INDEX_PROVISION         1
++#if defined(CONFIG_KEYMAN_PROVISION_KEY)
++#define _KM_DEV_INDEX_EFUSE             2
++#else
++#define _KM_DEV_INDEX_EFUSE             1
++#endif//#if defined(CONFIG_KEYMAN_PROVISION_KEY)
++
++static KmDevKeyOps* _km_devKeyOpsArr[] = {
++            [_KM_DEV_INDEX_SECUREKEY]      = &_SecukeyOps,
++#if defined(CONFIG_KEYMAN_PROVISION_KEY)
++            [_KM_DEV_INDEX_PROVISION]	   = &_provisionKeyOps,
++#endif//#if defined(CONFIG_KEYMAN_PROVISION_KEY)
++#if defined(CONFIG_EFUSE)
++            [_KM_DEV_INDEX_EFUSE]          = &_efuseKeyOps,
++#endif//#if defined(CONFIG_EFUSE)
++};
++
++static const int _KM_DEVCNT = sizeof(_km_devKeyOpsArr) / sizeof(_km_devKeyOpsArr[0]);
++
++int _keyman_hex_ascii_to_buf(const char* input, char* buf, const unsigned bufSz)
++{
++    int ret = 0;
++    const char* tmpStr = input;
++    const unsigned inputLen = strlen(input);
++    int i = 0;
++
++    if (!inputLen) {
++        KM_ERR("err input len 0\n");
++        return __LINE__;
++    }
++    if (inputLen & 1) {
++        KM_ERR("inputLen %d not even\n", inputLen);
++        return __LINE__;
++    }
++    if (bufSz * 2 > inputLen) {
++        KM_ERR("bufSz %d not enough\n", bufSz);
++        return __LINE__;
++    }
++    for (tmpStr = input; *tmpStr; ++tmpStr)
++    {
++        char c = *tmpStr;
++        ret = isxdigit(c);
++        if (!ret) {
++            KM_ERR("input(%s) contain non xdigit, c=%c\n", input, c);
++            return __LINE__;
++        }
++    }
++
++    for (i = 0; i < inputLen; i += 2)
++    {
++        char tmpByte[8];
++        tmpByte[2] = '\0';
++        tmpByte[0] = input[i];
++        tmpByte[1] = input[i + 1];
++
++        const unsigned val = simple_strtoul(tmpByte, NULL, 16);
++        if (val > 0xff) {
++            KM_ERR("Exception: val 0x%x > 0xff\n", val);
++            return __LINE__;
++        }
++        buf[i>>1] = val;
++    }
++
++    return 0;
++}
++
++int _keyman_buf_to_hex_ascii(const uint8_t* pdata, const unsigned dataLen, char* fmtStr/*pr if NULL*/)
++{
++    if (NULL == fmtStr) //Only print
++    {
++        int i = 0;
++        KM_MSG("key len is %d, hex value in hexdump:", dataLen);
++        for (; i < dataLen; ++i, ++pdata)
++        {
++            if (!(i & 0xf)) printf("\n\t[0x%04x]:\t\t", i);
++            printf("%02x ", *pdata);
++        }
++        printf("\n");
++    }
++    else
++    {
++        int i = 0;
++
++        *fmtStr = '\0';
++        for (; i < dataLen; ++i, ++pdata)
++        {
++            sprintf(fmtStr, "%s%02x", fmtStr, *pdata);
++        }
++    }
++
++    return 0;
++}
++
++/*
++ * function name: key_unify_init
++ * buf : input
++ * len  : > 0
++ * return : >=0: ok, other: fail
++ * */
++int key_unify_init(const char* seedStr, const char* dtbLoadaddr)
++{
++    int err=EINVAL;
++    int i;
++    uint64_t seedNum = 0;
++
++    if (!dtbLoadaddr)
++    {
++        dtbLoadaddr = (char*) env_get_ulong("fdtcontroladdr", 16, CONFIG_SYS_SDRAM_BASE + (16U<<20));
++    }
++
++    if (keymanage_dts_parse(dtbLoadaddr)) {
++        KM_DBG("Fail parse /unifykey at addr[0x%p]\n", dtbLoadaddr);
++        return err;
++    }
++
++    seedNum = simple_strtoull(seedStr, NULL, 0);
++    if (!seedNum) {
++        KM_ERR("Seed is 0 err\n");
++        return __LINE__;
++    }
++
++    if (amlkey_if_init(dtbLoadaddr)) {
++        KM_ERR("amlkey interface init fail\n");
++        return __LINE__;
++    }
++
++    for (i=0; i < _KM_DEVCNT; i++)
++    {
++        KmDevKeyOps* theDevOps = _km_devKeyOpsArr[i];
++        err = theDevOps->pInitFunc((char*)&seedNum, sizeof(uint64_t)/sizeof(char));
++        if (err) {
++            KM_ERR("Device[%d] init failed, err=%d\n", i, err);
++            return err;
++        }
++    }
++
++    return 0;
++}
++
++/* function name: key_unify_uninit
++ * functiion : uninit
++ * return : >=0 ok, <0 fail
++ * */
++int key_unify_uninit(void)
++{
++    int err=-EINVAL;
++    int i;
++
++    for (i=0; i < _KM_DEVCNT; i++)
++    {
++        KmDevKeyOps* theDevOps = _km_devKeyOpsArr[i];
++        err = theDevOps->pUninitFunc();
++        if (err) {
++            KM_ERR("device[%d] unini fail\n", i);
++            /*return err;*/
++        }
++    }
++
++    return 0;
++}
++
++static const KmDevKeyOps* _get_km_ops_by_name(const char* keyname)
++{
++    KmDevKeyOps* theDevOps  = NULL;
++
++    //step 1: get device ops by configured key-device
++    enum key_manager_dev_e theDevice = keymanage_dts_get_key_device(keyname);
++
++    switch (theDevice)
++    {
++        case KEY_M_EFUSE_NORMAL:
++            {
++                theDevOps = _km_devKeyOpsArr[_KM_DEV_INDEX_EFUSE];
++            }
++            break;
++
++        case KEY_M_NORAML_KEY:
++        case KEY_M_SECURE_KEY:
++            {
++                theDevOps = _km_devKeyOpsArr[_KM_DEV_INDEX_SECUREKEY];
++            }
++            break;
++
++        case KEY_M_PROVISION_KEY:
++            theDevOps = _km_devKeyOpsArr[_KM_DEV_INDEX_PROVISION];
++            break;
++
++        case KEY_M_UNKNOW_DEV:
++        default:
++            KM_ERR("key %s not know device %d\n", keyname, theDevice);
++            return NULL;
++    }
++
++    return theDevOps;
++}
++
++int key_unify_query_key_has_configure(const char* keyname)
++{
++    return _get_km_ops_by_name(keyname) ? 1 : 0;
++}
++
++/* funtion name: key_unify_write
++ * keyname : key name is ascii string
++ * keydata : key data buf
++ * datalen : key buf len
++ * return  0: ok, -0x1fe: no space, other fail
++ *
++ * Step 1: Get burn target from dtb
++ * Step 2: check whether can burned, OTP can't burned twice
++ *          2.1)check is programmed yet, burn directly if not programmed yet.
++ *          2.2)if programmed yet, check if OTP
++ * Step 3: burn the key to the target
++ * */
++int key_unify_write(const char *keyname, const void* keydata, const unsigned datalen)
++{
++    int err=0;
++    const KmDevKeyOps* theDevOps  = NULL;
++
++    theDevOps = _get_km_ops_by_name(keyname);
++    if (!theDevOps) {
++        KM_ERR("key[%s] no cfg in dts\n", keyname);
++        return __LINE__;
++    }
++
++    if (!theDevOps->can_overwrite) {
++        KM_DBG("can't overwrite\n");
++        int ret = theDevOps->pKeyExist(keyname);
++        if (ret) {
++            KM_ERR("OTP key[%s] already existed, can't program twice!\n", keyname);
++            return __LINE__;
++        }
++    }
++
++    err = theDevOps->pWriteFunc(keyname, keydata, datalen);
++
++    return err;
++}
++
++/*
++ *function name: key_unify_read
++ * keyname : key name is ascii string
++ * keydata : key data buf
++ * datalen : key buf len
++ * reallen : key real len
++ * return : <0 fail, >=0 ok
++ * */
++int key_unify_read(const char *keyname, void* keydata, const unsigned bufLen)
++{
++    int err=0;
++    const KmDevKeyOps* theDevOps  = NULL;
++
++    theDevOps = _get_km_ops_by_name(keyname);
++    if (!theDevOps) {
++        KM_ERR("key[%s] no cfg in dts\n", keyname);
++        return __LINE__;
++    }
++
++    int ret = theDevOps->pKeyExist(keyname);
++    if (!ret) {
++        KM_ERR("key[%s] not programed yet\n", keyname);
++        return __LINE__;
++    }
++
++    ret = theDevOps->pKeyCanRead(keyname);
++    if (!ret) {
++        KM_ERR("key[%s] can't read as it's secure\n", keyname);
++        return __LINE__;
++    }
++
++    const ssize_t keySz = theDevOps->pGetSize(keyname);
++    if (keySz > bufLen && bufLen) {
++        KM_ERR("keySz[%lu] > bufLen[%d]\n", keySz, bufLen);
++        return __LINE__;
++    }
++
++    err = theDevOps->pReadFunc(keyname, keydata, keySz);
++
++    return err;
++}
++
++int key_unify_query_size(const char* keyname, ssize_t* keysize)
++{
++    const KmDevKeyOps* theDevOps  = NULL;
++
++    theDevOps = _get_km_ops_by_name(keyname);
++    if (!theDevOps) {
++        KM_ERR("key[%s] not cfg in dts\n", keyname);
++        return __LINE__;
++    }
++
++#if 0
++    int ret = theDevOps->pKeyCanRead(keyname);
++    if (!ret) {
++        KM_ERR("key[%s] can't read as it's secure\n", keyname);
++        return __LINE__;
++    }
++#endif
++
++    *keysize = theDevOps->pGetSize(keyname);
++
++    return 0;
++}
++
++int key_unify_query_exist(const char* keyname, int* exist)
++{
++    const KmDevKeyOps* theDevOps  = NULL;
++
++    theDevOps = _get_km_ops_by_name (keyname) ;
++    if (!theDevOps) {
++        KM_ERR("key[%s] not cfg in dts\n", keyname);
++        return __LINE__;
++    }
++
++    *exist = theDevOps->pKeyExist(keyname);
++
++    return 0;
++}
++
++int key_unify_query_secure(const char* keyname, int* isSecure)
++{
++    const KmDevKeyOps* theDevOps  = NULL;
++
++    theDevOps = _get_km_ops_by_name (keyname) ;
++    if (!theDevOps) {
++        KM_ERR("key[%s] no cfg in dts\n", keyname);
++        return __LINE__;
++    }
++
++    int ret = theDevOps->pKeyExist (keyname) ;
++    if (!ret) {
++        KM_ERR("key[%s] not programed yet\n", keyname);
++        return __LINE__;
++    }
++
++    *isSecure = !theDevOps->pKeyCanRead (keyname) ;
++    if (!ret) {
++        KM_ERR ("key[%s] can't read as it's secure\n", keyname) ;
++        return __LINE__;
++    }
++
++    return 0;
++}
++
++int key_unify_query_canOverWrite(const char* keyname, int* canOverWrite)
++{
++    const KmDevKeyOps* theDevOps  = NULL;
++
++    theDevOps = _get_km_ops_by_name(keyname);
++    if (!theDevOps) {
++        KM_ERR("key[%s] no cfg in dts\n", keyname);
++        return __LINE__;
++    }
++
++    *canOverWrite = theDevOps->can_overwrite;
++    return 0;
++}
++
++int do_keyunify (struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
++{
++    int err;
++    char *cmd;
++    int ret = 0;
++
++    if (argc < 2) return CMD_RET_USAGE;
++
++    cmd = argv[1];
++    //keyman init seedNum <dtbLoadAddr>
++    if (!strcmp(cmd,"init"))
++    {
++        if (argc < 3) {
++            return CMD_RET_USAGE;
++        }
++        const char* seedNum     = argv[2];
++        const char* dtbLoadaddr = argc > 3 ? argv[3] : NULL;
++        err = key_unify_init(seedNum, dtbLoadaddr);
++        return err ? CMD_RET_FAILURE : CMD_RET_SUCCESS;
++    }
++
++    //keyunify write keyname addr <size>
++    //keyunify write keyname hexascii
++    if (!strcmp(cmd,"write"))
++    {
++        if (argc < 4) return CMD_RET_USAGE;
++
++        const char* keyname = argv[2];
++        const char* keyData = (char*)simple_strtoul(argv[3], NULL, 16);
++        unsigned len  = argc > 4 ? simple_strtoul(argv[4], NULL, 0) : 0;
++        char*  dataBuf = NULL;
++
++        if (argc == 4)
++        {
++            const char* hexascii = argv[3];
++
++            len = strlen(hexascii) / 2;
++            dataBuf = (char*)malloc(len);
++            if (!dataBuf) {
++                KM_ERR("Fail in malloc len %d\n", len);
++                return CMD_RET_FAILURE;
++            }
++
++            err = _keyman_hex_ascii_to_buf(hexascii, dataBuf, len);
++            if (err) {
++                KM_ERR("Fail in decrypt hexascii to buf, err=%d\n", err);
++                free(dataBuf);
++                return CMD_RET_FAILURE;
++            }
++            keyData = dataBuf;
++        }
++
++        KM_DBG("write key[%s], addr=%p, len=%d\n", keyname, keyData, len);
++        err = key_unify_write(keyname, keyData, len);
++        if (err ) {
++            KM_ERR("%s key write fail, err=%d\n", keyname, err);
++            return CMD_RET_FAILURE;
++        }
++        if (dataBuf)free(dataBuf) ;
++
++        return CMD_RET_SUCCESS;
++    }
++
++    //keyman query size/secure/exist keyname
++    if (!strcmp(cmd,"query"))
++    {
++        if (argc < 4) return CMD_RET_USAGE;
++
++        const char* subCmd  = argv[2];
++        const char* keyname = argv[3];
++
++        ret = CMD_RET_FAILURE;
++        if (!strcmp("size", subCmd))
++        {
++            ssize_t keysize = 0;
++            err = key_unify_query_size(keyname, &keysize);
++            if (!err) {
++                ret = CMD_RET_SUCCESS;
++                KM_MSG("key[%s] is %u bytes\n", keyname, (unsigned)keysize);
++            }
++        }
++        else if(!strcmp("secure", subCmd))
++        {
++            int isSecure = 0;
++
++            err = key_unify_query_secure(keyname, &isSecure);
++            if (!err) {
++                ret = CMD_RET_SUCCESS;
++                KM_MSG("key[%s] is %s Secure\n", keyname, isSecure ? "DO" : "NON");
++            }
++        }
++        else if(!strcmp("exist", subCmd))
++        {
++            int exist = 0;
++            err = key_unify_query_exist(keyname, &exist);
++            if (!err) {
++                ret = CMD_RET_SUCCESS;
++                KM_MSG("key[%s] is %s existed\n", keyname, exist ? "DO" : "NON");
++            }
++        }
++        else{
++            return CMD_RET_USAGE;
++        }
++
++        return ret;
++    }
++
++    //keyman read keyname memAddr
++    if (!strcmp(cmd,"read"))
++    {
++        if (argc < 4) return CMD_RET_USAGE;
++
++        const char* keyname = argv[2];
++        void* keydata = (void*)simple_strtoul(argv[3], NULL, 16);
++
++        ssize_t keysize = 0;
++        err = key_unify_query_size(keyname, &keysize);
++        if (err) {
++            KM_ERR("Fail in get keysz, err=%d\n", err);
++            return __LINE__;
++        }
++
++        err = key_unify_read(keyname, keydata, (unsigned)keysize);
++        if (err) {
++            KM_ERR("%s key read fail\n", keyname);
++            return CMD_RET_FAILURE;
++        }
++        _keyman_buf_to_hex_ascii(keydata, (unsigned)keysize, NULL);
++
++        return err;
++    }
++
++    if (!strcmp(cmd,"uninit"))
++    {
++        return key_unify_uninit();
++    }
++
++    return CMD_RET_USAGE;
++}
++
++U_BOOT_CMD(
++        keyunify, CONFIG_SYS_MAXARGS, 1, do_keyunify,
++        "key unify sub-system",
++        "init seedNum [dtbAddr] --init the drivers\n"
++        "keyunify uninit - init key in device\n"
++        "keyunify write keyname data <len>  ---- wirte key data. len non-exist if data is ascii str\n"
++        "keyunify read keyname data-addr <len> \n"
++);
++
++
++#if !defined(CONFIG_AML_SECURITY_KEY)
++int keymanage_securekey_init(const char* buf, int len) { return -EINVAL; }
++int keymanage_securekey_exit(void){ return -EINVAL; }
++int keymanage_secukey_write(const char *keyname, const void* keydata, unsigned int datalen){ return -EINVAL; }
++ssize_t keymanage_secukey_size(const char* keyname){ return 0; }
++int keymanage_secukey_exist(const char* keyname){ return 0; }
++int keymanage_secukey_can_read(const char* keyname){ return 0; }
++int keymanage_secukey_read(const char* keyname, void* dataBuf,  unsigned buflen){ return -EINVAL; }
++#endif// #if CONFIG_AML_SECURITY_KEY
++
++#if !defined(CONFIG_EFUSE)
++int keymanage_efuse_init(const char *buf, int len) { return -EINVAL; }
++int keymange_efuse_exit(void) {return -EINVAL;}
++int keymanage_efuse_write(const char *keyname, const void* keydata, unsigned int datalen) { return -EINVAL; }
++int keymanage_efuse_exist(const char* keyname) { return -EINVAL; }
++ssize_t keymanage_efuse_size(const char* keyname) { return 0; }
++int keymanage_efuse_read(const char *keyname, void* dataBuf, const unsigned bufsz) { return -EINVAL; }
++int keymanage_efuse_query_is_burned(const char* keyname) { return -EINVAL; }
++int keymanage_efuse_query_can_read(const char* keyname) { return -EINVAL; }
++#endif// #ifdef CONFIG_EFUSE
++
++#if !defined(CONFIG_OF_LIBFDT)
++int keymanage_dts_parse(const void* dt_addr){ return -EINVAL; }
++enum key_manager_df_e keymanage_dts_get_key_fmt(const char *keyname){ return -EINVAL; }
++enum key_manager_dev_e keymanage_dts_get_key_device(const char *keyname){ return -EINVAL; }
++char unifykey_get_efuse_version(void) { return -1; }
++#endif//#ifdef CONFIG_OF_LIBFDT
++
++
+diff --git a/drivers/amlogic/keymanage/km_dts.c b/drivers/amlogic/keymanage/km_dts.c
+new file mode 100644
+index 0000000000..d2a2186147
+--- /dev/null
++++ b/drivers/amlogic/keymanage/km_dts.c
+@@ -0,0 +1,392 @@
++#include "key_manage_i.h"
++//#include <fdt.h>
++#include <linux/libfdt.h>
++
++#define UNIFYKEY_DATAFORMAT_HEXDATA	    "hexdata"
++#define UNIFYKEY_DATAFORMAT_HEXASCII	"hexascii"
++#define UNIFYKEY_DATAFORMAT_ALLASCII	"allascii"
++
++#define UNIFYKEY_DEVICE_EFUSEKEY	    "efuse"
++#define UNIFYKEY_DEVICE_NORMAL		    "normal"
++#define UNIFYKEY_DEVICE_SECURESKEY	    "secure"
++#define UNIFYKEY_DEVICE_PROVISIONKEY    "provision"
++
++#define UNIFYKEY_PERMIT_READ		"read"
++#define UNIFYKEY_PERMIT_WRITE		"write"
++#define UNIFYKEY_PERMIT_DEL			"del"
++
++static struct key_info_t unify_key_info={.key_num =0, .key_flag = 0, .efuse_version = -1, .encrypt_type = 0};
++static struct key_item_t *unifykey_item=NULL;
++static struct key_item_t* _defProvisonItem =NULL;//keyname start with "KEY_PROVISION_" and device is "provison"
++#define _PROVSION_DEFAULT_KEY_NAME  "KEY_PROVISION_XXX"
++
++static int unifykey_item_verify_check(struct key_item_t *key_item)
++{
++	if (!key_item) {
++		KM_ERR("unify key item is invalid\n");
++		return -1;
++	}
++
++	if (!key_item->name || (key_item->dev == KEY_M_UNKNOW_DEV) ||(key_item->datFmt == KEY_M_MAX_DF)) {
++		KM_ERR("unify key item is invalid\n");
++		return -1;
++	}
++
++	return 0;
++}
++
++static struct key_item_t *unifykey_find_item_by_name(const char *name)
++{
++	struct key_item_t *pre_item;
++    int i = 0;
++    const unsigned cnt = unify_key_info.key_num;
++
++    for (pre_item = unifykey_item; i < cnt; ++pre_item, ++i)
++    {
++        if (!strcmp(pre_item->name,name)) {
++            return pre_item;
++        }
++    }
++
++    if (!strncmp(_PROVSION_DEFAULT_KEY_NAME, name, strlen(_PROVSION_DEFAULT_KEY_NAME) - 3)) {
++        return _defProvisonItem;
++    }
++	return NULL;
++}
++
++enum key_manager_df_e keymanage_dts_get_key_fmt(const char *keyname)
++{
++	struct key_item_t *key_manage;
++    enum key_manager_df_e keyValFmt = KEY_M_MAX_DF;
++
++    if (!unify_key_info.key_flag) {
++        KM_ERR("/unify not parsed yet!\n");
++        return KEY_M_MAX_DF;
++    }
++
++	key_manage = unifykey_find_item_by_name(keyname);
++	if (key_manage == NULL) {
++		KM_ERR ("%s key name is not exist\n", keyname) ;
++		return keyValFmt;
++	}
++	if (unifykey_item_verify_check(key_manage)) {
++		KM_ERR ("%s key name is invalid\n", keyname) ;
++		return keyValFmt;
++	}
++
++    keyValFmt = key_manage->datFmt;
++	return keyValFmt;
++}
++
++//which device does the key stored in
++enum key_manager_dev_e keymanage_dts_get_key_device(const char *keyname)
++{
++	struct key_item_t *key_manage;
++
++    if (!unify_key_info.key_flag) {
++        KM_ERR("/unify not parsed yet!\n");
++        return KEY_M_MAX_DEV;
++    }
++	key_manage = unifykey_find_item_by_name(keyname);
++	if (key_manage == NULL) {
++		KM_ERR("%s key name is not exist\n",keyname);
++		return KEY_M_MAX_DEV;
++	}
++	if (unifykey_item_verify_check(key_manage)) {
++		KM_ERR("%s key name is invalid\n",keyname);
++		return KEY_M_MAX_DEV;
++	}
++
++	return key_manage->dev;
++}
++
++const char* keymanage_dts_get_enc_type(const char* keyname)
++{
++	struct key_item_t *key_manage;
++
++    if (!unify_key_info.key_flag) {
++		KM_ERR("/unify not parsed yet!\n");
++		return NULL;
++	}
++	key_manage = unifykey_find_item_by_name(keyname);
++	if (key_manage == NULL) {
++		KM_ERR("%s key name is not exist\n",keyname);
++		return NULL;
++	}
++
++	return key_manage->encType;
++}
++
++const char* keymanage_dts_get_key_type(const char* keyname)
++{
++	struct key_item_t *key_manage;
++
++    if (!unify_key_info.key_flag) {
++        KM_ERR("/unify not parsed yet!\n");
++        return NULL;
++    }
++	key_manage = unifykey_find_item_by_name(keyname);
++	if (key_manage == NULL) {
++		KM_ERR("%s key name is not exist\n",keyname);
++		return NULL;
++	}
++
++	return key_manage->keyType;
++}
++
++char unifykey_get_efuse_version(void)
++{
++	char ver=0;
++
++    if (!unify_key_info.key_flag) {
++        KM_ERR("/unify not parsed yet!\n");
++        return 0;
++    }
++
++	if (unify_key_info.efuse_version != -1) {
++		ver = (char)unify_key_info.efuse_version;
++	}
++	return ver;
++}
++
++int unifykey_get_encrypt_type(void)
++{
++	return unify_key_info.encrypt_type;
++}
++
++static int unifykey_item_dt_parse(const void* dt_addr,int nodeoffset,int id,char *item_path)
++{
++	struct key_item_t *temp_item=NULL;
++	char *propdata;
++	struct fdt_property *prop;
++	int count;
++
++	temp_item = unifykey_item + id;
++
++	propdata = (char*)fdt_getprop(dt_addr, nodeoffset, "key-encrypt", NULL);
++	if (propdata) {
++		count = strlen(propdata);
++        if ( count > KEY_UNIFY_TYPE_LEN_MAX ) {
++			KM_ERR("key-encrypt [%s] too long\n", propdata);
++			return __LINE__;
++		}
++		memcpy(temp_item->encType, propdata, count);
++	}
++
++	propdata = (char*)fdt_getprop(dt_addr, nodeoffset, "key-name",NULL);
++	if (!propdata) {
++		printf("%s get key-name fail,%s:%d\n",item_path,__func__,__LINE__);
++        return __LINE__;
++	}
++
++	count = strlen(propdata);
++	if (count >= KEY_UNIFY_NAME_LEN) {
++        KM_ERR("key-name strlen (%d) > max(%d) at key_%d\n", count, KEY_UNIFY_NAME_LEN - 1, id);
++        return __LINE__;
++	}
++    memcpy(temp_item->name, propdata, count);
++    temp_item->name[count] = 0;
++
++	propdata = (char*)fdt_getprop(dt_addr, nodeoffset, "key-device",NULL);
++	if (!propdata) {
++		KM_ERR("%s get key-device fail at key_%d\n",item_path, id);
++        return __LINE__;
++	}
++
++    if (strcmp(propdata,UNIFYKEY_DEVICE_EFUSEKEY) == 0) {
++        temp_item->dev = KEY_M_EFUSE_NORMAL;
++    }
++    else if(strcmp(propdata,UNIFYKEY_DEVICE_SECURESKEY) == 0){
++        temp_item->dev = KEY_M_SECURE_KEY;
++    }
++    else if(strcmp(propdata,UNIFYKEY_DEVICE_NORMAL) == 0){
++        temp_item->dev = KEY_M_NORAML_KEY;
++    }
++    else{
++        KM_ERR("key-device %s is unknown at key_%d\n", propdata, id);
++        return __LINE__;
++    }
++
++	propdata = (char*)fdt_getprop((const void *)dt_addr, nodeoffset, "key-type",NULL);
++	if (!propdata) //prop 'key-type' not configured, default to raw except special names
++    {
++        strcpy(temp_item->keyType, "raw");
++	}
++    else
++    {
++        const int keyTypeLen = strlen(propdata);
++        if (keyTypeLen > KEY_UNIFY_TYPE_LEN_MAX) {
++            KM_ERR("key[%s]cfg key-type[%s] sz %d > max %d\n", temp_item->name, propdata, keyTypeLen, KEY_UNIFY_TYPE_LEN_MAX);
++            return __LINE__;
++        }
++        strcpy(temp_item->keyType, propdata);
++    }
++
++	prop = (struct fdt_property*)fdt_get_property((const void *)dt_addr,nodeoffset,"key-permit",NULL) ;
++	if (!prop) {
++		KM_ERR("%s get key-permit fail at  key_%d\n",item_path, id);
++        return __LINE__;
++	}
++
++    temp_item->permit = 0;
++    const int propLen = prop->len > 512 ? strnlen(prop->data, 512) : prop->len;
++    if (fdt_stringlist_contains(prop->data, propLen, UNIFYKEY_PERMIT_READ)) {
++        temp_item->permit |= KEY_M_PERMIT_READ;
++    }
++    if (fdt_stringlist_contains(prop->data, propLen, UNIFYKEY_PERMIT_WRITE)) {
++        temp_item->permit |= KEY_M_PERMIT_WRITE;
++    }
++    if (fdt_stringlist_contains(prop->data, propLen, UNIFYKEY_PERMIT_DEL)) {
++        temp_item->permit |= KEY_M_PERMIT_DEL;
++    }
++
++	temp_item->id = id;
++
++    KM_DBG("key[%02d] keyname %s, %d\n", id, temp_item->name, temp_item->dev);
++
++	return 0;
++}
++
++static int unifykey_item_create(const void* dt_addr,int num)
++{
++    int ret = 0;
++    int i,nodeoffset;
++    char item_path[100];
++
++    for (i=0;i<num;i++)
++    {
++        sprintf(item_path, "/unifykey/key_%d", i);
++
++        nodeoffset = fdt_path_offset (dt_addr, item_path) ;
++        if (nodeoffset < 0) {
++            KM_ERR(" dts: not find  node %s.\n",fdt_strerror(nodeoffset));
++            return __LINE__;
++        }
++
++        ret = unifykey_item_dt_parse(dt_addr,nodeoffset, i, item_path);
++        if (ret) {
++            KM_ERR("Fail at parse %s\n", item_path);
++            return __LINE__;
++        }
++    }
++
++    //	printf("unifykey-num fact is %x\n",count);
++    return 0;
++}
++
++//parse and cache the dts cfg
++//TODO: check keys names has no duplicated
++int keymanage_dts_parse(const void* dt_addr)
++{
++    int ret = 0;
++	int child;
++	int nodeoffset, provisionOffset;
++	int unifykeyNum = 0, provisionNum = 0;
++	char *punifykey_num, *encrypt_type;
++
++	if (fdt_check_header(dt_addr)!= 0) {
++        KM_ERR("not a fdt at 0x%p\n", dt_addr);
++        return __LINE__;
++    }
++
++	nodeoffset = fdt_path_offset(dt_addr, "/unifykey");
++	if (nodeoffset < 0) {
++		KM_ERR("dts: err(%s) in find /unifykey.\n",fdt_strerror(nodeoffset));
++		return __LINE__;
++	}
++
++	unify_key_info.efuse_version = -1;
++	punifykey_num = (char*)fdt_getprop((const void *)dt_addr, nodeoffset, "efuse-version",NULL);
++	if (punifykey_num) {
++		unify_key_info.efuse_version = be32_to_cpup((unsigned int*)punifykey_num);
++		KM_MSG("efuse-version config is %x\n",unify_key_info.efuse_version);
++	}
++
++	unify_key_info.key_num = 0;
++	fdt_for_each_subnode(child, dt_addr, nodeoffset) {
++		unifykeyNum++;
++	}
++
++	provisionOffset = fdt_path_offset(dt_addr, "/provisionkey");
++	if (provisionOffset >= 0) {
++		fdt_for_each_subnode(child, dt_addr, provisionOffset) {
++			provisionNum++;
++		}
++	}
++	unify_key_info.key_num = unifykeyNum + provisionNum;
++	KM_MSG("key_num: %d\n", unify_key_info.key_num);
++
++	unify_key_info.encrypt_type = -1;
++	encrypt_type = (char*)fdt_getprop((const void *)dt_addr, nodeoffset, "unifykey-encrypt",NULL);
++	if (encrypt_type) {
++		unify_key_info.encrypt_type = be32_to_cpup((unsigned int*)encrypt_type);
++	}
++
++	if (unify_key_info.key_num <= 0) {
++		KM_ERR("unifykey-num is not configured\n");
++        return __LINE__;
++	}
++    if (unify_key_info.key_num > 256) {
++        KM_ERR("Cfg key_num is %d > 32,pls check!\n", unify_key_info.key_num);
++        return __LINE__;
++    }
++
++    if (unifykey_item) {
++        free(unifykey_item);
++    }
++    const unsigned keyInfBufLen = unify_key_info.key_num * sizeof(struct key_item_t);
++    unifykey_item = (struct key_item_t*)malloc(keyInfBufLen);
++    memset(unifykey_item, 0 , keyInfBufLen);
++
++    ret = unifykey_item_create(dt_addr,unifykeyNum);
++    unify_key_info.key_flag = ret ? 0 : 1;
++
++    if (provisionOffset >= 0)
++    {
++        KM_DBG("dts: in find /provisionkey.\n");
++
++        int defPermits = 0;
++        const struct fdt_property *prop = fdt_get_property(dt_addr, provisionOffset,"key-permit-default",NULL) ;
++        if (prop) {
++            const int propLen = prop->len > 512 ? strnlen(prop->data, 512) : prop->len;
++            if (fdt_stringlist_contains(prop->data, propLen, UNIFYKEY_PERMIT_READ)) {
++                defPermits |= KEY_M_PERMIT_READ;
++            }
++            if (fdt_stringlist_contains(prop->data, propLen, UNIFYKEY_PERMIT_WRITE)) {
++                defPermits |= KEY_M_PERMIT_WRITE;
++            }
++            if (fdt_stringlist_contains(prop->data, propLen, UNIFYKEY_PERMIT_DEL)) {
++                defPermits |= KEY_M_PERMIT_DEL;
++            }
++        }
++
++        int node = 0;
++        int id = unifykeyNum;
++        int szlen = 0;
++        fdt_for_each_subnode(node, dt_addr, provisionOffset) {
++            int len = 0;
++            const char* keyName = fdt_get_name(dt_addr, node, &len);
++            KM_DBG("provisionkey[%s] len %d\n", keyName, len);
++
++            struct key_item_t *pItem= unifykey_item + id;
++
++            szlen = strnlen(keyName, KEY_UNIFY_NAME_LEN - 1);
++            memcpy(pItem->name, keyName, szlen);
++            if (szlen < KEY_UNIFY_NAME_LEN) pItem->name[szlen] = '\0';
++
++            strcpy(pItem->keyType, "raw");
++            pItem->dev = KEY_M_PROVISION_KEY;
++            pItem->permit = defPermits;
++            pItem->id      = id++;
++            if (!strcmp(_PROVSION_DEFAULT_KEY_NAME, keyName)) _defProvisonItem = pItem;
++        }
++
++        if ((node < 0) && (node != -FDT_ERR_NOTFOUND)) {
++            KM_ERR("in parse /provisionkey, err(%s)\n", fdt_strerror(node));
++            return __LINE__;
++        }
++    }
++
++	return ret;
++}
++
+diff --git a/drivers/amlogic/keymanage/km_efuse_key.c b/drivers/amlogic/keymanage/km_efuse_key.c
+new file mode 100644
+index 0000000000..32c373cbbb
+--- /dev/null
++++ b/drivers/amlogic/keymanage/km_efuse_key.c
+@@ -0,0 +1,156 @@
++/*
++ * \file        km_efuse_key.c
++ * \brief       efuse key ops for key manage
++ *
++ * \version     1.0.0
++ * \date        15/06/30
++ * \author      Sam.Wu <yihui.wu@amlgic.com>
++ *
++ * Copyright (c) 2015 Amlogic. All Rights Reserved.
++ *
++ */
++#include "key_manage_i.h"
++#include <amlogic/asm/secure_apb.h>
++#include <asm/io.h>
++
++#include <command.h>
++#include <amlogic/aml_efuse.h>
++
++#define SECURE_BOOT_KEY_NAME    "secure_boot_set"
++
++extern int efuse_usr_api_init_dtb(const char*  dt_addr);
++extern int efuse_usr_api_get_cfg_key_size(const char* keyname, unsigned* pSz);
++extern int efuse_usr_api_write_key(const char* keyname, const void* keydata, const unsigned dataSz);
++extern int efuse_usr_api_read_key(const char* keyname, void* databuf, const unsigned bufSz);
++
++int keymanage_efuse_init(const char *buf, int len)
++{
++    char ver;
++    int ret = 0;
++
++    const char* dtbLoadAddr;
++    dtbLoadAddr = (char*) env_get_ulong("fdtcontroladdr", 16, CONFIG_SYS_SDRAM_BASE + (16U<<20));
++
++    ret = efuse_usr_api_init_dtb(dtbLoadAddr);
++    if (ret) {
++        KM_ERR("efuse init failed\n");
++        return __LINE__;
++    }
++
++    ver = unifykey_get_efuse_version();
++    if (ver == 0) {
++        KM_DBG("efuse version not cfg\n");
++        return 0;
++    }
++
++    //TODO: program the efuse version
++
++    return ret;
++}
++
++int keymange_efuse_exit(void)
++{
++    return 0;
++}
++
++//must be hexdata if stored in efuse
++int keymanage_efuse_write(const char *keyname, const void* keydata, unsigned int datalen)
++{
++    int ret = 0;
++
++    if (!strcmp(SECURE_BOOT_KEY_NAME, keyname))
++    {
++            char _cmdbuf[96];
++            sprintf(_cmdbuf, "efuse %s %p", keyname, keydata);
++            ret = run_command(_cmdbuf, 0);;
++    }
++    else
++    {
++            ret = efuse_usr_api_write_key(keyname,  keydata, datalen);
++    }
++
++    return ret;
++}
++
++ssize_t keymanage_efuse_size(const char* keyname)
++{
++    int ret = 0;
++    unsigned cfgSz = 0;
++
++    ret = efuse_usr_api_get_cfg_key_size(keyname, &cfgSz);
++    if (ret || !cfgSz) {
++        KM_ERR("Fail at get cfg size for efuse key[%s]\n", keyname);
++        return 0;
++    }
++
++    return cfgSz;
++}
++
++int keymanage_efuse_exist(const char* keyname)
++{
++
++        if (!strcmp(SECURE_BOOT_KEY_NAME, keyname))
++        {
++                const unsigned long cfg10 = IS_FEAT_BOOT_VERIFY();
++                KM_MSG("cfg10=0x%lX\n", cfg10);
++                return ( cfg10 );
++        }
++        else
++        {
++                int ret = 0;
++                const ssize_t cfgSz = keymanage_efuse_size(keyname);
++                char* databuf = NULL;
++                int isEmpty = 1;
++                int i = 0;
++
++                databuf = (char*)malloc(cfgSz);
++                if (!databuf) {
++                        KM_ERR("Fail to alloc bufsz 0x%x for key %s\n", (unsigned)cfgSz, keyname);
++                        return 0;
++                }
++                ret = keymanage_efuse_read(keyname, databuf, cfgSz);
++                if (ret) {
++                        KM_ERR("Fail at read key[%s]\n", keyname);
++                        goto _exit;
++                }
++                for (i = 0; i < cfgSz && isEmpty; ++i) {
++                        isEmpty = !databuf[i];
++                }
++
++_exit:
++                free(databuf);
++                return !isEmpty;
++        }
++
++        return __LINE__;
++}
++
++int keymanage_efuse_query_can_read(const char* keyname)
++{
++        if (!strcmp(SECURE_BOOT_KEY_NAME, keyname))
++        {
++                return 0;
++        }
++        else
++        {
++                return 1;//user space always can be read
++        }
++}
++
++//data format is hexdata
++int keymanage_efuse_read(const char *keyname, void* databuf, const unsigned bufSz)
++{
++    int ret = 0;
++    unsigned cfgSz = 0;
++
++    cfgSz = keymanage_efuse_size(keyname);
++    if (cfgSz > bufSz) {
++        KM_ERR("buf sz 0x%x < dts cfg sz 0x%x\n", bufSz, cfgSz);
++        return __LINE__;
++    }
++
++    ret = efuse_usr_api_read_key(keyname, databuf, cfgSz);
++
++    return ret;
++}
++
+diff --git a/drivers/amlogic/keymanage/km_provision_key.c b/drivers/amlogic/keymanage/km_provision_key.c
+new file mode 100644
+index 0000000000..954a42b28a
+--- /dev/null
++++ b/drivers/amlogic/keymanage/km_provision_key.c
+@@ -0,0 +1,102 @@
++/*
++* Copyright (C) 2017 Amlogic, Inc. All rights reserved.
++* *
++This program is free software; you can redistribute it and/or modify
++* it under the terms of the GNU General Public License as published by
++* the Free Software Foundation; either version 2 of the License, or
++* (at your option) any later version.
++* *
++This program is distributed in the hope that it will be useful, but WITHOUT
++* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++* FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
++* more details.
++* *
++You should have received a copy of the GNU General Public License along
++* with this program; if not, write to the Free Software Foundation, Inc.,
++* 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++* *
++Description:
++*/
++
++#include "key_manage_i.h"
++#include <cli.h>
++
++#define _CMD_BUF_LEN 512
++static char _cmdBuf[_CMD_BUF_LEN];
++
++int keymanage_provision_init(const char *buf, int len)
++{
++	KM_DBG("f(%s)L%d\n", __func__, __LINE__);
++	return 0;
++}
++
++int keymanage_provision_exit(void)
++{
++	KM_DBG("f(%s)L%d\n", __func__, __LINE__);
++    return 0;
++}
++
++//must be hexdata if stored in efuse
++int keymanage_provision_write(const char *keyname, const void* keydata, unsigned int datalen)
++{
++	KM_DBG("f(%s)L%d\n", __func__, __LINE__);
++
++	snprintf(_cmdBuf, _CMD_BUF_LEN, "factory_provision write %s 0x%p 0x%x", keyname, keydata, datalen);
++	int iRet = run_command(_cmdBuf, 0);
++	KM_MSG("factory provision[%s], query sta=%d\n", keyname, iRet);
++
++	return iRet;
++}
++
++ssize_t keymanage_provision_size(const char* keyname)
++{
++	KM_DBG("f(%s)L%d\n", __func__, __LINE__);
++	uint32_t retBuf[12];
++	snprintf(_cmdBuf, _CMD_BUF_LEN, "factory_provision query %s 0x%p", keyname, retBuf);
++	int iRet = run_command(_cmdBuf, 0);
++	if (iRet) {
++		KM_MSG("factory provision[%s], query sta=%d\n", keyname, iRet);
++		return 0;
++	}
++
++	return retBuf[0];
++}
++
++int keymanage_provision_exist(const char* keyname)
++{
++	KM_DBG("f(%s)L%d\n", __func__, __LINE__);
++	snprintf(_cmdBuf, _CMD_BUF_LEN, "factory_provision query %s", keyname);
++	int iRet = run_command(_cmdBuf, 0);
++	if (iRet) KM_MSG("factory provision[%s], query sta=%d\n", keyname, iRet);
++
++	return !iRet;
++}
++
++int keymanage_provision_query_can_read(const char* keyname)
++{
++	KM_DBG("f(%s)L%d\n", __func__, __LINE__);
++
++	return 0;//always cannot be read
++}
++
++//read hash instead of actual value
++int keymanage_provision_read(const char *keyname, void* databuf, const unsigned bufSz)
++{
++	KM_DBG("f(%s)L%d\n", __func__, __LINE__);
++	uint32_t retBuf[12];
++	snprintf(_cmdBuf, _CMD_BUF_LEN, "factory_provision query %s 0x%p", keyname, retBuf);
++	int iRet = run_command(_cmdBuf, 0);
++	if (iRet) {
++		KM_MSG("factory provision[%s], query sta=%d\n", keyname, iRet);
++		return __LINE__;
++	}
++	if (bufSz < 32) {
++		KM_ERR("bufsz %d not enough for sha256sum\n", bufSz);
++		return -__LINE__;
++	}
++
++	KM_MSG("provision read return sha256sum, but not original data\n");
++	memcpy(databuf, retBuf + 1, 32);
++	return 0;//
++}
++
+diff --git a/drivers/amlogic/keymanage/km_secure_key.c b/drivers/amlogic/keymanage/km_secure_key.c
+new file mode 100644
+index 0000000000..f33652b1b6
+--- /dev/null
++++ b/drivers/amlogic/keymanage/km_secure_key.c
+@@ -0,0 +1,263 @@
++/*
++ * \file        km_secure_key.c
++ * \brief       secure storage key ops for key manage
++ *
++ * \version     1.0.0
++ * \date        15/06/30
++ * \author      Sam.Wu <yihui.wu@amlgic.com>
++ *
++ * Copyright (c) 2015 Amlogic. All Rights Reserved.
++ *
++ */
++#include "key_manage_i.h"
++#include <amlogic/amlkey_if.h>
++#include <u-boot/sha256.h>
++
++int keymanage_securekey_init(const char* buf, int len)
++{
++	int encrypt_type;
++
++	encrypt_type = unifykey_get_encrypt_type();
++	return amlkey_init((uint8_t*)buf, len, encrypt_type);	//confirm
++}
++
++int keymanage_securekey_exit(void)
++{
++    return 0;
++}
++
++int keymanage_secukey_write(const char *keyname, const void* keydata, unsigned int datalen)
++{
++    int ret = 0;
++    uint8_t origSum[SHA256_SUM_LEN];
++    const int isSecure =  ( KEY_M_SECURE_KEY == keymanage_dts_get_key_device(keyname) ) ? 1 : 0;
++    const int isEncrypt= strlen(keymanage_dts_get_enc_type(keyname)) ? 1 : 0;
++    const unsigned int keyAttr = ( isSecure << 0 ) | ( isEncrypt << 8 );
++    ssize_t writenLen = 0;
++
++    if (isSecure)
++    {
++        sha256_context ctx;
++        sha256_starts(&ctx);
++        sha256_update(&ctx, keydata, datalen);
++        sha256_finish(&ctx, origSum);
++    }
++
++    KM_MSG("isEncrypt=%s\n", keymanage_dts_get_enc_type(keyname));
++    KM_DBG("%s, keyname=%s, keydata=%p, datalen=%d, isSecure=%d\n", __func__, keyname, keydata, datalen, isSecure);
++    KM_MSG("keyAttr is 0x%08X\n", keyAttr);
++    writenLen = amlkey_write((uint8_t*)keyname, (uint8_t*)keydata, datalen, keyAttr);
++    if (writenLen != datalen) {
++        KM_ERR("Want to write %u bytes, but only %zd Bytes\n", datalen, writenLen);
++        return __LINE__;
++    }
++
++    if (isSecure)
++    {
++        uint8_t genSum[SHA256_SUM_LEN];
++
++        ret = amlkey_hash_4_secure((uint8_t*)keyname, genSum);
++        if (ret) {
++            KM_ERR("Failed when gen hash for secure key[%s], ret=%d\n", keyname, ret);
++            return __LINE__;
++        }
++
++        ret = memcmp(origSum, genSum, SHA256_SUM_LEN);
++        if (ret)
++        {
++            int index = 0;
++            char origSum_str[SHA256_SUM_LEN * 2 + 2];
++            char genSum_str[SHA256_SUM_LEN * 2 + 2];
++
++            origSum_str[0] = genSum_str[0] = '\0';
++            for (index = 0; index < SHA256_SUM_LEN; ++index) {
++
++                sprintf(origSum_str, "%s%02x", origSum_str, origSum[index]);
++                sprintf(genSum_str, "%s%02x", genSum_str, genSum[index]);
++            }
++
++            KM_ERR("Failed in check hash, origSum[%s] != genSum[%s]\n", origSum_str, genSum_str);
++            return __LINE__;
++        }
++        KM_MSG("OK in check sha1256 in burn key[%s]\n", keyname);
++    }
++
++    return ret;
++}
++
++ssize_t keymanage_secukey_size(const char* keyname)
++{
++	return amlkey_size((uint8_t*)keyname);	//actully size
++}
++
++int keymanage_secukey_exist(const char* keyname)
++{
++	return amlkey_isexsit((uint8_t*)keyname);	//exsit 1, non 0
++}
++
++int keymanage_secukey_can_read(const char* keyname)
++{
++	return !amlkey_issecure((uint8_t*)keyname);	//secure 1, non 0
++}
++
++int keymanage_secukey_read(const char* keyname, void* databuf,  unsigned buflen)
++{
++    int ret = 0;
++
++    ret = keymanage_secukey_can_read(keyname);
++    if (!ret) {
++        KM_ERR("key[%s] can't read, is configured secured?\n", keyname);
++        return __LINE__;
++    }
++
++	const ssize_t readLen = amlkey_read((uint8_t*)keyname, (uint8_t*)databuf, buflen);
++    if (readLen != buflen) {
++        KM_ERR("key[%s], want read %u Bytes, but %zd bytes\n", keyname, buflen, readLen);
++        return __LINE__;
++    }
++
++    return 0;
++}
++
++#if 1//hdcp2 rx start
++#define HDCP2_RX_LC128_LEN         (36)
++#define HDCP2_RX_KEY_LEN           (862)
++#pragma pack(push, 1)
++typedef struct _Hdcp2RxKeyFmt{
++    unsigned                version;
++    char                    lc128[HDCP2_RX_LC128_LEN];
++    char                    keyVal[HDCP2_RX_KEY_LEN];
++}Hdcp2RxKeyFmt_t;
++#pragma pack(pop)
++
++#define HDCP2_RX_KEY_TOTAL_LEN        sizeof(Hdcp2RxKeyFmt_t)
++#define HDCP2_RX_KEY_LC128_NAME       "hdcp2lc128"
++#define HDCP2_RX_KEY_NAME             "hdcp2key"
++#define HDCP2_RX_KEY_VERSION           (0x02000000U)
++#define HDCP2_VERSION_LEN               ( 4 )
++
++static char generalDataChange(const char input)
++{
++    int i;
++    char result = 0;
++
++    for (i=0; i<8; i++) {
++        if ((input & (1<<i)) != 0)
++            result |= (1<<(7-i));
++        else
++            result &= ~(1<<(7-i));
++    }
++
++    return result;
++}
++
++static void hdcp2DataEncryption(const unsigned len, const char *input, char *out)
++{
++    int i = 0;
++
++    for (i=0; i<len; i++)
++        *out++ = generalDataChange(*input++);
++}
++
++static void hdcp2DataDecryption(const unsigned len, const char *input, char *out)
++{
++    int i = 0;
++
++    for (i=0; i<len; i++)
++        *out++ = generalDataChange(*input++);
++}
++
++int _burn_key_in_type_hdcp2(const char* keyname, void* databuf, const unsigned bufLen, char* decryptBuf)
++{
++    Hdcp2RxKeyFmt_t* pHdcp2RxKey = (Hdcp2RxKeyFmt_t*)databuf;
++    const int keyLen = HDCP2_RX_KEY_TOTAL_LEN;
++
++    if (keyLen > bufLen) {
++        KM_ERR("hdcp2 rx len unsupported. want %d but get %d\n", keyLen, bufLen);
++        return __LINE__;
++    }
++    if (HDCP2_RX_KEY_VERSION != pHdcp2RxKey->version) {
++        KM_ERR("Version value 0x%x is error, should be 0x%x\n", pHdcp2RxKey->version, HDCP2_RX_KEY_VERSION);
++        return __LINE__;
++    }
++
++    hdcp2DataEncryption(keyLen, databuf, decryptBuf);
++    KM_MSG("Ecnrypt hdcp2 END.\n");
++    pHdcp2RxKey = (Hdcp2RxKeyFmt_t*)decryptBuf;
++
++    const uint8_t* tmpName      = (uint8_t*)HDCP2_RX_KEY_LC128_NAME;
++    unsigned        tmpLen      = HDCP2_RX_LC128_LEN;
++    unsigned        isSecure    = 0;
++    ssize_t retLen = 0;
++    retLen = amlkey_write(tmpName, (uint8_t*)&pHdcp2RxKey->lc128, tmpLen , isSecure);
++    if (retLen != tmpLen) {
++        KM_ERR ("Fail in write hdcp2 lc128, retLen %zd != want len %d\n", retLen, tmpLen) ;
++        return __LINE__;
++    }
++
++    tmpName = (uint8_t*)HDCP2_RX_KEY_NAME;
++    tmpLen = HDCP2_RX_KEY_LEN;
++    retLen = amlkey_write(tmpName, (uint8_t*)&pHdcp2RxKey->keyVal, tmpLen , isSecure);
++    if (retLen != tmpLen) {
++        KM_ERR ("Fail in write hdcp2 key, retLen %zd != want len %d\n", retLen, tmpLen) ;
++        return __LINE__;
++    }
++
++    tmpLen = HDCP2_VERSION_LEN;
++    retLen = amlkey_write((uint8_t*)keyname, (uint8_t*)&pHdcp2RxKey->version, tmpLen, isSecure);
++    if (retLen != tmpLen) {
++        KM_ERR ("Fail in write hdcp2 key, retLen %zd != want len %d\n", retLen, tmpLen) ;
++        return __LINE__;
++    }
++
++    return 0;
++}
++
++int _read_key_in_type_hdcp2(const char* keyname, void* databuf, const unsigned bufLen, char* decryptBuf)
++{
++    const unsigned srcKeyLen    = HDCP2_RX_KEY_TOTAL_LEN;
++    Hdcp2RxKeyFmt_t* pHdcp2RxKey = (Hdcp2RxKeyFmt_t*)decryptBuf;
++    const uint8_t* tmpName = NULL;
++    int tmpLen = 0;
++
++    if (bufLen < srcKeyLen) {
++        KM_ERR("hdcp2 rx len unsupported. want %d but only %d\n", srcKeyLen, bufLen);
++        return __LINE__;
++    }
++
++    ssize_t retLen = 0;
++    tmpName = (uint8_t*)keyname;
++    tmpLen = HDCP2_VERSION_LEN;
++    retLen = amlkey_read(tmpName, (uint8_t*)&pHdcp2RxKey->version, tmpLen);
++    if (retLen != tmpLen) {
++        KM_ERR ("Fail in read key[%s] at len %d\n", tmpName, tmpLen) ;
++        return __LINE__;
++    }
++
++    tmpName = (uint8_t*)HDCP2_RX_KEY_NAME;
++    tmpLen  = HDCP2_RX_KEY_LEN;
++    retLen = amlkey_read(tmpName, (uint8_t*)&pHdcp2RxKey->keyVal, tmpLen);
++    if (retLen != tmpLen) {
++        KM_ERR ("Fail in read key[%s] at len %d\n", tmpName, tmpLen) ;
++        return __LINE__;
++    }
++
++    tmpName = (uint8_t*)HDCP2_RX_KEY_LC128_NAME;
++    tmpLen  = HDCP2_RX_LC128_LEN;
++    retLen = amlkey_read(tmpName, (uint8_t*)&pHdcp2RxKey->lc128, tmpLen);
++    if (retLen != tmpLen) {
++        KM_ERR ("Fail in read key[%s] at len %d\n", tmpName, tmpLen) ;
++        return __LINE__;
++    }
++
++    hdcp2DataDecryption(srcKeyLen, (char*)pHdcp2RxKey, databuf);
++
++    return 0;
++}
++int _km_hdcp2_size(void)
++{
++    return HDCP2_RX_KEY_TOTAL_LEN;
++}
++#endif//hdcp2 rx end
++
++
+diff --git a/drivers/amlogic/keymanage/km_secure_key_2015.c b/drivers/amlogic/keymanage/km_secure_key_2015.c
+new file mode 100644
+index 0000000000..5baabb88f0
+--- /dev/null
++++ b/drivers/amlogic/keymanage/km_secure_key_2015.c
+@@ -0,0 +1,118 @@
++/* SPDX-License-Identifier: (GPL-2.0+ OR MIT) */
++/*
++ * drivers/keymanage/km_secure_key.c
++ *
++ * Copyright (C) 2020 Amlogic, Inc. All rights reserved.
++ *
++ */
++
++#include "key_manage_i.h"
++#include <amlogic/amlkey_if.h>
++#include <u-boot/sha256.h>
++
++int keymanage_securekey_init(const char* buf, int len)
++{
++	int encrypt_type;
++
++	encrypt_type = unifykey_get_encrypt_type();
++	return amlkey_init((uint8_t*)buf, len, encrypt_type);	//confirm
++}
++
++int keymanage_securekey_exit(void)
++{
++    return 0;
++}
++
++int keymanage_secukey_write(const char *keyname, const void* keydata, unsigned int datalen)
++{
++    int ret = 0;
++    uint8_t origSum[SHA256_SUM_LEN];
++    const int isSecure =  ( KEY_M_SECURE_KEY == keymanage_dts_get_key_device(keyname) ) ? 1 : 0;
++    const int isEncrypt= strlen(keymanage_dts_get_enc_type(keyname)) ? 1 : 0;
++    const unsigned int keyAttr = ( isSecure << 0 ) | ( isEncrypt << 8 );
++    ssize_t writenLen = 0;
++
++    if (isSecure)
++    {
++        sha256_context ctx;
++        sha256_starts(&ctx);
++        sha256_update(&ctx, keydata, datalen);
++        sha256_finish(&ctx, origSum);
++    }
++
++    KM_MSG("isEncrypt=%s\n", keymanage_dts_get_enc_type(keyname));
++    KM_DBG("%s, keyname=%s, keydata=%p, datalen=%d, isSecure=%d\n", __func__, keyname, keydata, datalen, isSecure);
++    KM_MSG("keyAttr is 0x%08X\n", keyAttr);
++    writenLen = amlkey_write((uint8_t*)keyname, (uint8_t*)keydata, datalen, keyAttr);
++    if (writenLen != datalen) {
++        KM_ERR("Want to write %u bytes, but only %zd Bytes\n", datalen, writenLen);
++        return __LINE__;
++    }
++
++    if (isSecure)
++    {
++        uint8_t genSum[SHA256_SUM_LEN];
++
++        ret = amlkey_hash_4_secure((uint8_t*)keyname, genSum);
++        if (ret) {
++            KM_ERR("Failed when gen hash for secure key[%s], ret=%d\n", keyname, ret);
++            return __LINE__;
++        }
++
++        ret = memcmp(origSum, genSum, SHA256_SUM_LEN);
++        if (ret)
++        {
++            int index = 0;
++            char origSum_str[SHA256_SUM_LEN * 2 + 2];
++            char genSum_str[SHA256_SUM_LEN * 2 + 2];
++
++            origSum_str[0] = genSum_str[0] = '\0';
++            for (index = 0; index < SHA256_SUM_LEN; ++index) {
++
++                sprintf(origSum_str, "%s%02x", origSum_str, origSum[index]);
++                sprintf(genSum_str, "%s%02x", genSum_str, genSum[index]);
++            }
++
++            KM_ERR("Failed in check hash, origSum[%s] != genSum[%s]\n", origSum_str, genSum_str);
++            return __LINE__;
++        }
++        KM_MSG("OK in check sha1256 in burn key[%s]\n", keyname);
++    }
++
++    return ret;
++}
++
++ssize_t keymanage_secukey_size(const char* keyname)
++{
++	return amlkey_size((uint8_t*)keyname);	//actully size
++}
++
++int keymanage_secukey_exist(const char* keyname)
++{
++	return amlkey_isexsit((uint8_t*)keyname);	//exsit 1, non 0
++}
++
++int keymanage_secukey_can_read(const char* keyname)
++{
++	return !amlkey_issecure((uint8_t*)keyname);	//secure 1, non 0
++}
++
++int keymanage_secukey_read(const char* keyname, void* databuf,  unsigned buflen)
++{
++    int ret = 0;
++
++    ret = keymanage_secukey_can_read(keyname);
++    if (!ret) {
++        KM_ERR("key[%s] can't read, is configured secured?\n", keyname);
++        return __LINE__;
++    }
++
++    const ssize_t readLen = amlkey_read((uint8_t*)keyname, (uint8_t*)databuf, buflen);
++    if (readLen != buflen) {
++        KM_ERR("key[%s], want read %u Bytes, but %zd bytes\n", keyname, buflen, readLen);
++        return __LINE__;
++    }
++
++    return 0;
++}
++
+diff --git a/drivers/amlogic/storagekey/Kconfig b/drivers/amlogic/storagekey/Kconfig
+new file mode 100644
+index 0000000000..311ab7e8ec
+--- /dev/null
++++ b/drivers/amlogic/storagekey/Kconfig
+@@ -0,0 +1,2 @@
++config SECURE_STORAGE
++    bool "Amlogic bl31 storage key"
+diff --git a/drivers/amlogic/storagekey/Makefile b/drivers/amlogic/storagekey/Makefile
+new file mode 100644
+index 0000000000..6e7ccb4ba3
+--- /dev/null
++++ b/drivers/amlogic/storagekey/Makefile
+@@ -0,0 +1,3 @@
++obj-$(CONFIG_SECURE_STORAGE) += storagekey.o
++obj-$(CONFIG_SECURE_STORAGE) += securestorage.o
++obj-$(CONFIG_SECURE_STORAGE) += normal_key.o
+diff --git a/drivers/amlogic/storagekey/normal_key.c b/drivers/amlogic/storagekey/normal_key.c
+new file mode 100644
+index 0000000000..9e40c8fdfe
+--- /dev/null
++++ b/drivers/amlogic/storagekey/normal_key.c
+@@ -0,0 +1,672 @@
++/*
++ * drivers/storagekey/normal_key.c
++ *
++ * Copyright (C) 2015 Amlogic, Inc. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ * You should have received a copy of the GNU General Public License along
++ * with this program; if not, write to the Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
++*/
++
++#include <common.h>
++#include <linux/types.h>
++#include <linux/list.h>
++#include <u-boot/sha256.h>
++#include <malloc.h>
++#include "normal_key.h"
++
++#undef pr_info
++#define pr_info(fmt ...)     printf("[KM]Msg:"fmt)
++#undef pr_err
++#define pr_err(fmt ...)     printf("[KM]Error:f[%s]L%d:", __func__, __LINE__),printf(fmt)
++
++#define DBG 0
++
++/* Storage BLOCK RAW HEAD: fixed 512B*/
++#define ENC_TYPE_DEFAULT 0
++#define ENC_TYPE_EFUSE	1
++#define ENC_TYPE_FIXED	2
++
++#define STORAGE_BLOCK_RAW_HEAD_SIZE 512
++
++#define BLOCK_VERSION_0		0
++
++#define ERR_HEADER	0x1
++#define ERR_KEYMEMFAIL	0x2
++#define ERR_KEYRDFAIL	0x4
++#define ERR_KEYCHKFAIL	0x8
++#define ERR_ENCHDFAIL	0x10
++#define ERR_DATASZ	0x20
++struct storage_block_raw_head {
++	u8 mark[16]; /* AMLNORMAL*/
++	u32 version;
++	u32 enctype; /*from EFUSE, from default, from fixed*/
++	u32 keycnt;
++	u32 initcnt;
++	u32 wrtcnt;
++	u32 errcnt;
++	u32 flags;
++	u8  headhash[32];
++	u8  hash[32];
++};
++
++/* Storage BLOCK ENC HEAD: fixed 512B*/
++#define STORAGE_BLOCK_ENC_HEAD_SIZE 512
++struct storage_block_enc_head {
++	u32 blocksize;
++	u32 flashsize;
++};
++
++/* Storage Format: TLV*/
++enum emTLVTag {
++	EMTLVNONE,
++
++	EMTLVHEAD,
++	EMTLVHEADSIZE,
++
++	EMTLVOBJECT,
++	EMTLVOBJNAMESIZE,
++	EMTLVOBJNAME,
++	EMTLVOBJDATASIZE,
++	EMTLVOBJDATABUF,
++	EMTLVOBJTYPE,
++	EMTLVOBJATTR,
++	EMTLVOBJHASHBUF,
++
++	EMTLVHEADFLASHSIZE,
++};
++
++struct storage_node {
++	struct list_head node;
++	struct storage_object object;
++};
++
++static LIST_HEAD(keys);
++static int blockinited;
++static struct storage_block_raw_head rawhead;
++static struct storage_block_enc_head enchead;
++static char *blockmark = "AMLNORMAL";
++
++#if DBG
++static void dump_raw_head(struct storage_block_raw_head *prawhead)
++{
++	pr_info("rawhead:\n");
++	pr_info("mark: %s\n", prawhead->mark);
++	pr_info("keycnt: %u\n", prawhead->keycnt);
++	pr_info("initcnt: %u\n", prawhead->initcnt);
++	pr_info("wrtcnt: %u\n", prawhead->wrtcnt);
++	pr_info("errcnt: %u\n", prawhead->errcnt);
++	pr_info("flags: 0x%x\n", prawhead->flags);
++}
++
++static void dump_enc_head(struct storage_block_enc_head *penchead)
++{
++	pr_info("enchead:\n");
++	pr_info("blocksize: %u\n", penchead->blocksize);
++	pr_info("flashsize: %u\n", penchead->flashsize);
++}
++
++static void dump_mem(const u8 *p, int len)
++{
++	int idx = 0, j, tmp;
++	char buf[64];
++	int total;
++
++	while (idx < len) {
++		total = 0;
++		tmp = min(((int)len - idx), 16);
++		for (j = 0; j < tmp; j++)
++			total += snprintf(buf + total, 64 - total,
++					  "%02x ", p[idx + j]);
++		buf[total] = 0;
++		pr_info("%s\n", buf);
++		idx += tmp;
++	}
++}
++
++static void dump_object(struct storage_object *obj)
++{
++	pr_info("key: [%u, %.*s, %x, %x, %u]\n",
++		obj->namesize, obj->namesize, obj->name,
++		obj->type, obj->attribute, obj->datasize);
++	if (obj->dataptr) {
++		pr_info("data:\n");
++		dump_mem(obj->dataptr, obj->datasize);
++	}
++}
++#endif
++
++static u32 Tlv_WriteUint32(u8 *output, s32 len,
++			   u32 tag, u32 value)
++{
++	u32 *out = (u32 *)output;
++
++	if (len < 12)
++		return 0;
++
++	out[0] = tag;
++	out[1] = 4;
++	out[2] = value;
++	return 12;
++}
++
++static u32 Tlv_WriteBuf(u8 *output, s32 len,
++			u32 tag,
++			u32 length, u8 *input)
++{
++	u8 *out = output;
++	u32 tmplen = (((length + 3) / 4) * 4);
++
++	if (len < (s32)(8 + tmplen))
++		return 0;
++
++	*((u32 *)out) = tag;
++	*((u32 *)(out + 4)) = tmplen;
++	memset(out + 8, 0, tmplen);
++	memcpy(out + 8, input, length);
++
++	return tmplen + 8;
++}
++
++static u32 Tlv_ReadTl(u8 *input, int32_t len,
++		      u32 *tag, u32 *length,
++		      u32 *idx)
++{
++	if (len < 8)
++		return 0;
++
++	*tag = *((u32 *)input);
++	*length =  *((u32 *)(input + 4));
++
++	if ((8 + *length) > len)
++		return 0;
++	*idx += 8;
++
++	return 8;
++}
++
++static u32 Tlv_ReadHead(u8 *input, int32_t len,
++			struct storage_block_enc_head *pblockhead)
++{
++	u32 tag;
++	u32 sum;
++	u32 length;
++	u32 idx = 0;
++	u32 ret;
++
++	ret = Tlv_ReadTl(input, len,
++			 &tag, &sum, &idx);
++	if (!ret)
++		return 0;
++
++	if (tag != EMTLVHEAD)
++		return 0;
++
++	sum += ret;
++	while (idx < sum) {
++		ret = Tlv_ReadTl(input + idx, len - idx,
++				 &tag, &length, &idx);
++		if (!ret)
++			return 0;
++
++		switch (tag) {
++		case EMTLVHEADSIZE:
++			pblockhead->blocksize = *((u32 *)(input + idx));
++			break;
++		case EMTLVHEADFLASHSIZE:
++			pblockhead->flashsize = *((u32 *)(input + idx));
++			break;
++		default:
++			break;
++		}
++		idx += length;
++	}
++	return sum;
++}
++
++static u32 Tlv_ReadObject(u8 *input, int32_t len,
++			  struct storage_object *pcontent)
++{
++	u32 tag;
++	u32 length;
++	u32 sum;
++	u32 idx = 0;
++	u32 ret;
++
++	memset(pcontent, 0, sizeof(*pcontent));
++	ret = Tlv_ReadTl(input, len,
++			 &tag, &sum, &idx);
++	if (!ret)
++		return 0;
++
++	if (tag != EMTLVOBJECT)
++		return 0;
++
++	sum += ret;
++	while (idx < sum) {
++		ret = Tlv_ReadTl(input + idx, len - idx,
++				 &tag, &length, &idx);
++		if (!ret)
++			goto tlv_readkeycontent_err;
++
++		switch (tag) {
++		case EMTLVOBJNAMESIZE:
++			pcontent->namesize = *((u32 *)(input + idx));
++			break;
++		case EMTLVOBJNAME:
++			memset(pcontent->name, 0, MAX_OBJ_NAME_LEN);
++			memcpy(pcontent->name, input + idx, pcontent->namesize);
++			break;
++		case EMTLVOBJTYPE:
++			pcontent->type = *((u32 *)(input + idx));
++			break;
++		case EMTLVOBJATTR:
++			pcontent->attribute = *((u32 *)(input + idx));
++			break;
++		case EMTLVOBJDATASIZE:
++			pcontent->datasize = *((u32 *)(input + idx));
++			break;
++		case EMTLVOBJHASHBUF:
++			if (length != 32)
++				goto tlv_readkeycontent_err;
++			memcpy(pcontent->hashptr, input + idx, length);
++			break;
++		case EMTLVOBJDATABUF:
++			pcontent->dataptr = malloc(pcontent->datasize);
++			if (!pcontent->dataptr)
++				goto tlv_readkeycontent_err;
++			memcpy(pcontent->dataptr,
++			       input + idx, pcontent->datasize);
++			break;
++		default:
++			break;
++		}
++		idx += length;
++	}
++	return sum;
++
++tlv_readkeycontent_err:
++	free(pcontent->dataptr);
++	return 0;
++}
++
++#define WRT_UINT32(tag, field) \
++	({ \
++		u32 __tmp; \
++		__tmp = Tlv_WriteUint32(output + idx, len - idx, \
++					tag, field); \
++		if (__tmp) \
++			idx += __tmp; \
++		__tmp; \
++	})
++
++#define WRT_BUF(tag, buflen, buf) \
++	({ \
++		u32 __tmp; \
++		__tmp = Tlv_WriteBuf(output + idx, len - idx, \
++				     tag, buflen, buf); \
++		if (__tmp) \
++			idx += __tmp; \
++		__tmp; \
++	})
++
++u32 Tlv_WriteHead(struct storage_block_enc_head *enchead,
++		  u8 *output, int32_t len)
++{
++	u32 *sum;
++	u32 idx = 0;
++
++	if (len < 8)
++		return 0;
++
++	*(u32 *)output = EMTLVHEAD;
++	sum = (u32 *)(output + 4);
++	idx += 8;
++
++	if (!WRT_UINT32(EMTLVHEADSIZE, enchead->blocksize))
++		return 0;
++	if (!WRT_UINT32(EMTLVHEADFLASHSIZE, enchead->flashsize))
++		return 0;
++
++	*sum = idx - 8;
++	return idx;
++}
++
++u32 Tlv_WriteObject(struct storage_object *object,
++		    u8 *output, int32_t len)
++{
++	u32 *sum;
++	u32 idx = 0;
++
++	if (len < 8)
++		return 0;
++
++	*(u32 *)output = EMTLVOBJECT;
++	sum = (u32 *)(output + 4);
++	idx += 8;
++
++	if (object->namesize != 0) {
++		if (!WRT_UINT32(EMTLVOBJNAMESIZE, object->namesize))
++			return 0;
++		if (!WRT_BUF(EMTLVOBJNAME, object->namesize,
++			     (u8 *)object->name))
++			return 0;
++	}
++
++	if (object->dataptr && object->datasize != 0) {
++		if (!WRT_UINT32(EMTLVOBJDATASIZE, object->datasize))
++			return 0;
++		if (!WRT_BUF(EMTLVOBJDATABUF, object->datasize,
++			     object->dataptr))
++			return 0;
++	}
++
++	if (!WRT_BUF(EMTLVOBJHASHBUF, 32, object->hashptr))
++		return 0;
++	if (!WRT_UINT32(EMTLVOBJTYPE, object->type))
++		return 0;
++	if (!WRT_UINT32(EMTLVOBJATTR, object->attribute))
++		return 0;
++
++	*sum = idx - 8;
++	return idx;
++}
++
++static int normalkey_hash(u8 *data, u32 len, u8 *hash)
++{
++	sha256_context ctx;
++	sha256_starts(&ctx);
++	sha256_update(&ctx, data, len);
++	sha256_finish(&ctx, hash);
++	return 0;
++}
++
++int normalkey_init(void)
++{
++	if (blockinited)
++		return 0;
++
++	blockinited = 1;
++	return 0;
++}
++
++void normalkey_deinit(void)
++{
++	struct storage_node *pos, *n;
++
++	if (!blockinited)
++		return;
++
++	blockinited = 0;
++
++	list_for_each_entry_safe(pos, n, &keys, node) {
++		list_del(&pos->node);
++		free(pos->object.dataptr);
++		free(pos);
++	}
++}
++
++struct storage_object *normalkey_get(const u8 *name)
++{
++	struct storage_node *pos;
++	struct storage_object *obj;
++	u32 len;
++
++	if (!name)
++		return NULL;
++
++	len = strlen((const char*)name);
++	list_for_each_entry(pos, &keys, node) {
++		obj = &pos->object;
++		if (len == obj->namesize &&
++		    !memcmp(name, obj->name, len))
++			return obj;
++	}
++
++	return NULL;
++}
++
++int normalkey_add(const u8 *name, u8 *buffer, u32 len, u32 attr)
++{
++	struct storage_object *obj;
++	struct storage_node *node;
++	u32 namelen;
++	u8 *data;
++
++	if (blockinited != 2)
++		return -1;
++
++	if (!name || !buffer || !len || (attr & OBJ_ATTR_SECURE))
++		return -1;
++
++	namelen = strlen((const char*)name);
++	if (namelen > MAX_OBJ_NAME_LEN)
++		return -1;
++
++	obj = normalkey_get(name);
++	if (obj) {
++		if (attr != obj->attribute)
++			return -1;
++		if (len > obj->datasize) {
++			data = malloc(len);
++			if (!data)
++				return -1;
++			free(obj->dataptr);
++			obj->dataptr = data;
++		}
++	} else {
++		node = malloc(sizeof(*node));
++		if (!node)
++			return -1;
++		data = malloc(len);
++		if (!data) {
++			free(node);
++			return -1;
++		}
++		obj = &node->object;
++		memcpy(obj->name, name, namelen);
++		obj->namesize = namelen;
++		obj->attribute = attr;
++		obj->type = OBJ_TYPE_GENERIC;
++		obj->dataptr = data;
++		list_add(&node->node, &keys);
++	}
++	obj->datasize = len;
++	memcpy(obj->dataptr, buffer, len);
++	normalkey_hash(buffer, len, obj->hashptr);
++	return 0;
++}
++
++int normalkey_del(const u8 *name)
++{
++	struct storage_object *obj;
++	struct storage_node *node;
++
++	if (blockinited != 2)
++		return -1;
++
++	obj = normalkey_get(name);
++	if (!obj)
++		return -1;
++
++	node = container_of(obj, struct storage_node, object);
++	list_del(&node->node);
++	free(obj->dataptr);
++	free(node);
++
++	return 0;
++}
++
++int normalkey_readfromblock(void *block, unsigned long size)
++{
++	struct storage_block_raw_head *prawhead;
++	u8 *penchead, *pdata;
++	struct storage_node *node = NULL;
++	u8 hash[32];
++	u32 idx;
++	u32 ret;
++
++	if (blockinited != 1)
++		return -1;
++
++	prawhead = (struct storage_block_raw_head *)block;
++	penchead = (u8 *)block + STORAGE_BLOCK_RAW_HEAD_SIZE;
++	pdata = penchead + STORAGE_BLOCK_ENC_HEAD_SIZE;
++
++	if (!block || size <=
++	    (STORAGE_BLOCK_ENC_HEAD_SIZE + STORAGE_BLOCK_RAW_HEAD_SIZE))
++		return -1;
++
++	blockinited = 2;
++
++	memset(&rawhead, 0, sizeof(rawhead));
++	strncpy((char*)rawhead.mark, blockmark, 15);
++	rawhead.version = BLOCK_VERSION_0;
++
++	enchead.flashsize = size;
++	if (strcmp((const char *)prawhead->mark, blockmark) != 0) {
++		pr_info("mark is not found\n");
++		return 0;
++	}
++
++	normalkey_hash((u8 *)prawhead, sizeof(*prawhead) - 64,
++		       rawhead.headhash);
++	if (memcmp(rawhead.headhash, prawhead->headhash, 32)) {
++		pr_info("rawhead hash check fail\n");
++		rawhead.flags |= ERR_HEADER;
++	} else {
++		pr_info("rawhead hash check successful\n");
++		rawhead.keycnt = prawhead->keycnt;
++		rawhead.initcnt = prawhead->initcnt;
++		rawhead.wrtcnt = prawhead->wrtcnt;
++		rawhead.errcnt = prawhead->errcnt;
++		rawhead.flags = prawhead->flags;
++	}
++
++	rawhead.initcnt++;
++
++#if DBG
++	dump_raw_head(&rawhead);
++#endif
++
++	normalkey_hash(penchead, size - STORAGE_BLOCK_RAW_HEAD_SIZE,
++		       rawhead.hash);
++	if (memcmp(rawhead.hash, prawhead->hash, 32)) {
++		pr_info("data hash check fail\n");
++		rawhead.errcnt++;
++		return 0;
++	}
++
++	ret = Tlv_ReadHead(penchead, STORAGE_BLOCK_ENC_HEAD_SIZE,
++			   &enchead);
++	if (!ret) {
++		pr_info("read head fail\n");
++		rawhead.flags |= ERR_ENCHDFAIL;
++		return 0;
++	}
++
++#if DBG
++	dump_enc_head(&enchead);
++#endif
++
++	if (size < (enchead.blocksize + STORAGE_BLOCK_ENC_HEAD_SIZE +
++	    STORAGE_BLOCK_RAW_HEAD_SIZE)) {
++		rawhead.flags |= ERR_DATASZ;
++		return 0;
++	}
++
++	idx = 0;
++	while (idx < enchead.blocksize) {
++		struct storage_object *obj = NULL;
++
++		if (!node) {
++			node = malloc(sizeof(*node));
++			if (!node) {
++				rawhead.flags |= ERR_KEYMEMFAIL;
++				break;
++			}
++		}
++		obj = &node->object;
++		ret = Tlv_ReadObject(pdata + idx,
++				     enchead.blocksize - idx, obj);
++		if (!ret) {
++			rawhead.flags |= ERR_KEYRDFAIL;
++			break;
++		}
++		idx += ret;
++
++		normalkey_hash(obj->dataptr, obj->datasize, hash);
++		if (memcmp(hash, obj->hashptr, 32)) {
++			free(obj->dataptr);
++			rawhead.flags |= ERR_KEYCHKFAIL;
++			continue;
++		}
++#if DBG
++		dump_object(obj);
++#endif
++		list_add(&node->node, &keys);
++		node = NULL;
++	}
++
++	free(node);
++	return 0;
++}
++
++int normalkey_writetoblock(void *block, unsigned long size)
++{
++	u8 *prawhead;
++	u8 *penchead, *pdata;
++	struct storage_object *obj = NULL;
++	struct storage_node *node = NULL;
++	u32 idx;
++	u32 ret;
++
++	if (blockinited != 2)
++		return -1;
++
++	prawhead = (u8 *)block;
++	penchead = prawhead + STORAGE_BLOCK_RAW_HEAD_SIZE;
++	pdata = penchead + STORAGE_BLOCK_ENC_HEAD_SIZE;
++
++	if (!block || size <=
++	    (STORAGE_BLOCK_ENC_HEAD_SIZE + STORAGE_BLOCK_RAW_HEAD_SIZE))
++		return -1;
++
++	enchead.flashsize = size;
++	size -= (STORAGE_BLOCK_ENC_HEAD_SIZE + STORAGE_BLOCK_RAW_HEAD_SIZE);
++	idx = 0;
++	rawhead.keycnt = 0;
++	list_for_each_entry(node, &keys, node) {
++		obj = &node->object;
++		ret = Tlv_WriteObject(obj, pdata + idx, size - idx);
++		if (!ret)
++			return -1;
++		idx += ret;
++		rawhead.keycnt++;
++	}
++	enchead.blocksize = idx;
++
++	ret = Tlv_WriteHead(&enchead, penchead, STORAGE_BLOCK_ENC_HEAD_SIZE);
++	if (!ret)
++		return -1;
++
++	rawhead.wrtcnt++;
++	normalkey_hash((u8 *)&rawhead, sizeof(rawhead) - 64,
++		       rawhead.headhash);
++	normalkey_hash(penchead,
++		       enchead.flashsize - STORAGE_BLOCK_RAW_HEAD_SIZE,
++		       rawhead.hash);
++	memcpy(prawhead, &rawhead, sizeof(rawhead));
++
++	return 0;
++}
+diff --git a/drivers/amlogic/storagekey/normal_key.h b/drivers/amlogic/storagekey/normal_key.h
+new file mode 100644
+index 0000000000..18772db67e
+--- /dev/null
++++ b/drivers/amlogic/storagekey/normal_key.h
+@@ -0,0 +1,49 @@
++/*
++ * drivers/amlogic/storagekey/normal_key.h
++ *
++ * Copyright (C) 2017 Amlogic, Inc. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ */
++
++#ifndef _AML_NORMAL_KEY_H_
++#define _AML_NORMAL_KEY_H_
++
++#define MAX_OBJ_NAME_LEN	80
++
++/*Attribute*/
++#define OBJ_ATTR_SECURE	BIT(0)
++#define OBJ_ATTR_OTP	BIT(1)
++#define OBJ_ATTR_ENC	BIT(8)
++
++/* Type */
++#define OBJ_TYPE_GENERIC	0xA00000BF
++
++struct storage_object {
++	char name[MAX_OBJ_NAME_LEN];
++	u32 namesize;
++	u32 attribute; /*secure, OTP*/
++	u32 type; /*AES, RSA, GENERIC, ...*/
++	u32 datasize;
++	u8 *dataptr;
++	u8 hashptr[32];
++};
++
++int normalkey_init(void);
++void normalkey_deinit(void);
++struct storage_object *normalkey_get(const u8 *name);
++int normalkey_add(const u8 *name, u8 *buffer, u32 len, u32 attr);
++int normalkey_del(const u8 *name);
++int normalkey_readfromblock(void *block, unsigned long size);
++int normalkey_writetoblock(void *block, unsigned long size);
++
++#endif
+diff --git a/drivers/amlogic/storagekey/securestorage.c b/drivers/amlogic/storagekey/securestorage.c
+new file mode 100644
+index 0000000000..c65fee5586
+--- /dev/null
++++ b/drivers/amlogic/storagekey/securestorage.c
+@@ -0,0 +1,389 @@
++#include <common.h>
++#include <linux/types.h>
++#include <amlogic/secure_storage.h>
++
++// TODO: refactor
++#include <amlogic/asm/secure_apb.h>
++#include <amlogic/asm/bl31_apis.h>
++
++static uint64_t storage_share_in_base;
++static uint64_t storage_share_out_base;
++static uint64_t storage_share_block_base;
++static uint64_t storage_share_block_size;
++static int32_t storage_init_status;
++
++static uint64_t bl31_storage_ops(uint64_t function_id)
++{
++	asm volatile(
++		__asmeq("%0", "x0")
++		"smc    #0\n"
++		: "+r" (function_id));
++
++	return function_id;
++}
++uint64_t bl31_storage_ops2(uint64_t function_id, uint64_t arg1)
++{
++	asm volatile(
++		__asmeq("%0", "x0")
++		__asmeq("%1", "x1")
++		"smc    #0\n"
++		: "+r" (function_id)
++		: "r"(arg1));
++
++	return function_id;
++}
++uint64_t bl31_storage_ops3(uint64_t function_id, uint64_t arg1, uint32_t arg2)
++{
++	asm volatile(
++		__asmeq("%0", "x0")
++		__asmeq("%1", "x1")
++		__asmeq("%2", "x2")
++		"smc    #0\n"
++		: "+r" (function_id)
++		: "r"(arg1), "r"(arg2));
++
++	return function_id;
++}
++
++static uint64_t bl31_storage_write(uint8_t *keyname, uint8_t *keybuf,
++				uint32_t keylen, uint32_t keyattr)
++{
++	uint32_t *input = (uint32_t *)storage_share_in_base;
++	uint8_t *data;
++	uint32_t namelen;
++
++	namelen = strlen((const char *)keyname);
++	*input++ = namelen;
++	*input++ = keylen;
++	*input++ = keyattr;
++	data = (uint8_t *)input;
++	memcpy(data, keyname, namelen);
++	data += namelen;
++	memcpy(data, keybuf, keylen);
++	return bl31_storage_ops(SECURITY_KEY_WRITE);
++}
++
++static uint64_t bl31_storage_read(uint8_t *keyname, uint8_t *keybuf,
++				uint32_t keylen, uint32_t *readlen)
++{
++	uint32_t *input = (uint32_t *)storage_share_in_base;
++	uint32_t *output = (uint32_t *)storage_share_out_base;
++	uint32_t namelen;
++	uint8_t *name, *buf;
++	uint64_t ret;
++
++	namelen = strlen((const char *)keyname);
++	*input++ = namelen;
++	*input++ = keylen;
++	name = (uint8_t *)input;
++	memcpy(name, keyname, namelen);
++	ret = bl31_storage_ops(SECURITY_KEY_READ);
++	if (ret == RET_OK) {
++		*readlen = *output;
++		buf = (uint8_t *)(output+1);
++		memcpy(keybuf, buf, *readlen);
++	}
++	return ret;
++}
++
++static uint64_t bl31_storage_query(uint8_t *keyname, uint32_t *retval)
++{
++	uint32_t *input = (uint32_t *)storage_share_in_base;
++	uint32_t *output = (uint32_t *)storage_share_out_base;
++	uint32_t namelen;
++	uint8_t *name;
++	uint64_t ret;
++
++	namelen = strlen((const char *)keyname);
++	*input++ = namelen;
++	name = (uint8_t *)input;
++	memcpy(name, keyname, namelen);
++	ret = bl31_storage_ops(SECURITY_KEY_QUERY);
++	if (ret == RET_OK)
++		*retval = *output;
++	return ret;
++}
++
++static uint64_t bl31_storage_status(uint8_t *keyname, uint32_t *retval)
++{
++	uint32_t *input = (uint32_t *)storage_share_in_base;
++	uint32_t *output = (uint32_t *)storage_share_out_base;
++	uint32_t namelen;
++	uint8_t *name;
++	uint64_t ret;
++
++	namelen = strlen((const char *)keyname);
++	*input++ = namelen;
++	name = (uint8_t *)input;
++	memcpy(name, keyname, namelen);
++	ret = bl31_storage_ops(SECURITY_KEY_STATUS);
++	if (ret == RET_OK)
++		*retval = *output;
++	return ret;
++}
++static uint64_t bl31_storage_tell(uint8_t *keyname, uint32_t *retval)
++{
++	uint32_t *input = (uint32_t *)storage_share_in_base;
++	uint32_t *output = (uint32_t *)storage_share_out_base;
++	uint32_t namelen;
++	uint8_t *name;
++	uint64_t ret;
++
++	namelen = strlen((const char *)keyname);
++	*input++ = namelen;
++	name = (uint8_t *)input;
++	memcpy(name, keyname, namelen);
++	ret = bl31_storage_ops(SECURITY_KEY_TELL);
++	if (ret == RET_OK)
++		*retval = *output;
++	return ret;
++}
++
++static uint64_t bl31_storage_verify(uint8_t *keyname, uint8_t *hashbuf)
++{
++	uint32_t *input = (uint32_t *)storage_share_in_base;
++	uint32_t *output = (uint32_t *)storage_share_out_base;
++	uint32_t namelen;
++	uint8_t *name;
++	uint64_t ret;
++
++	namelen = strlen((const char *)keyname);
++	*input++ = namelen;
++	name = (uint8_t *)input;
++	memcpy(name, keyname, namelen);
++	ret = bl31_storage_ops(SECURITY_KEY_VERIFY);
++
++	if (ret == RET_OK)
++		memcpy(hashbuf, (uint8_t *)output, 32);
++	return ret;
++}
++
++static uint64_t bl31_storage_list(uint8_t *listbuf,
++	uint32_t outlen, uint32_t *readlen)
++{
++	uint32_t *output = (uint32_t *)storage_share_out_base;
++	uint64_t ret;
++
++	ret = bl31_storage_ops(SECURITY_KEY_LIST);
++	if (ret == RET_OK) {
++		if (*output > outlen)
++			*readlen = outlen;
++		else
++			*readlen = *output;
++		memcpy(listbuf, (uint8_t *)(output+1), *readlen);
++	}
++	return ret;
++}
++
++static uint64_t bl31_storage_remove(uint8_t *keyname)
++{
++	uint32_t *input = (uint32_t *)storage_share_in_base;
++	uint32_t namelen;
++	uint8_t *name;
++
++	namelen = strlen((const char *)keyname);
++	*input++ = namelen;
++	name = (uint8_t *)input;
++	memcpy(name, keyname, namelen);
++	return bl31_storage_ops(SECURITY_KEY_REMOVE);
++}
++
++static inline int32_t smc_to_ns_errno(uint64_t errno)
++{
++	int32_t ret = (int32_t)(errno&0xffffffff);
++	return ret;
++}
++
++void secure_storage_init(void)
++{
++		storage_share_in_base =
++				bl31_storage_ops(GET_SHARE_STORAGE_IN_BASE);
++		storage_share_out_base =
++				bl31_storage_ops(GET_SHARE_STORAGE_OUT_BASE);
++		storage_share_block_base =
++				bl31_storage_ops(GET_SHARE_STORAGE_BLOCK_BASE);
++		storage_share_block_size =
++				bl31_storage_ops(GET_SHARE_STORAGE_BLOCK_SIZE);
++
++		if (storage_share_in_base == SMC_UNK
++				|| storage_share_out_base == SMC_UNK
++				|| storage_share_block_base == SMC_UNK
++				|| storage_share_block_size == SMC_UNK)
++			storage_init_status = -1;
++		else
++			storage_init_status = 1;
++}
++
++void *secure_storage_getbuffer(uint32_t *size)
++{
++	if (storage_init_status == 0)
++		secure_storage_init();
++
++	if (storage_init_status == 1) {
++			storage_share_block_size =
++				bl31_storage_ops(GET_SHARE_STORAGE_BLOCK_SIZE);
++		*size = (uint32_t)storage_share_block_size;
++		return (void *)storage_share_block_base;
++	}
++	else {
++		*size = 0;
++		return NULL;
++	}
++}
++void secure_storage_notifier(void)
++{
++	bl31_storage_ops(SECURITY_KEY_NOTIFY);
++}
++
++void secure_storage_notifier_ex(uint32_t storagesize, uint32_t rsvarg)
++{
++	bl31_storage_ops3(SECURITY_KEY_NOTIFY_EX, storagesize, rsvarg);
++}
++
++int32_t secure_storage_write(uint8_t *keyname, uint8_t *keybuf,
++				uint32_t keylen, uint32_t keyattr)
++{
++	uint32_t ret;
++
++	if (storage_init_status == 0)
++		secure_storage_init();
++
++	if (storage_init_status == 1)
++		ret = bl31_storage_write(keyname, keybuf, keylen, keyattr);
++	else
++		ret = RET_EUND;
++	return smc_to_ns_errno(ret);
++}
++
++int32_t secure_storage_read(uint8_t *keyname, uint8_t *keybuf,
++			uint32_t keylen, uint32_t *readlen)
++{
++	uint64_t ret;
++	if (storage_init_status == 0)
++		secure_storage_init();
++
++	if (storage_init_status == 1)
++		ret = bl31_storage_read(keyname, keybuf, keylen, readlen);
++	else
++		ret = RET_EUND;
++
++	return smc_to_ns_errno(ret);
++}
++
++int32_t secure_storage_query(uint8_t *keyname, uint32_t *retval)
++{
++	uint64_t ret;
++	if (storage_init_status == 0)
++		secure_storage_init();
++
++	if (storage_init_status == 1)
++		ret = bl31_storage_query(keyname, retval);
++	else
++		ret = RET_EUND;
++
++	return smc_to_ns_errno(ret);
++}
++
++int32_t secure_storage_status(uint8_t *keyname, uint32_t *retval)
++{
++	uint64_t ret;
++	if (storage_init_status == 0)
++		secure_storage_init();
++
++	if (storage_init_status == 1)
++		ret = bl31_storage_status(keyname, retval);
++	else
++		ret = RET_EUND;
++
++	return smc_to_ns_errno(ret);
++}
++
++int32_t secure_storage_tell(uint8_t *keyname, uint32_t *retval)
++{
++	uint64_t ret;
++	if (storage_init_status == 0)
++		secure_storage_init();
++
++	if (storage_init_status == 1)
++		ret = bl31_storage_tell(keyname, retval);
++	else
++		ret = RET_EUND;
++
++	return smc_to_ns_errno(ret);
++}
++
++int32_t secure_storage_verify(uint8_t *keyname, uint8_t *hashbuf)
++{
++	uint64_t ret;
++	if (storage_init_status == 0)
++		secure_storage_init();
++
++	if (storage_init_status == 1)
++		ret = bl31_storage_verify(keyname, hashbuf);
++	else
++		ret = RET_EUND;
++
++	return smc_to_ns_errno(ret);
++}
++
++int32_t secure_storage_list(uint8_t *listbuf,
++		uint32_t buflen, uint32_t *readlen)
++{
++	uint64_t ret;
++	if (storage_init_status == 0)
++		secure_storage_init();
++
++	if (storage_init_status == 1)
++		ret = bl31_storage_list(listbuf, buflen, readlen);
++	else
++		ret = RET_EUND;
++
++	return smc_to_ns_errno(ret);
++}
++
++int32_t secure_storage_remove(uint8_t *keyname)
++{
++	uint64_t ret;
++	if (storage_init_status == 0)
++		secure_storage_init();
++
++	if (storage_init_status == 1)
++		ret = bl31_storage_remove(keyname);
++	else
++		ret = RET_EUND;
++
++	return smc_to_ns_errno(ret);
++}
++
++void secure_storage_set_info(uint32_t info)
++{
++	register uint64_t x0 asm("x0")= SET_STORAGE_INFO;
++	register uint64_t x1 asm("x1") = info;
++	asm volatile(
++		__asmeq("%0", "x0")
++		__asmeq("%1", "x1")
++		"smc    #0\n"
++		: :"r" (x0), "r"(x1));
++
++}
++
++int32_t secure_storage_set_enctype(uint32_t type)
++{
++	uint64_t  ret;
++	ret = bl31_storage_ops2(SECURITY_KEY_SET_ENCTYPE, type);
++	return smc_to_ns_errno(ret);
++}
++
++int32_t secure_storage_get_enctype(void)
++{
++	uint64_t ret;
++	ret = bl31_storage_ops(SECURITY_KEY_GET_ENCTYPE);
++	return smc_to_ns_errno(ret);
++}
++
++int32_t secure_storage_version(void)
++{
++	uint64_t ret;
++	ret = bl31_storage_ops(SECURITY_KEY_VERSION);
++	return smc_to_ns_errno(ret);
++}
+diff --git a/drivers/amlogic/storagekey/storagekey.c b/drivers/amlogic/storagekey/storagekey.c
+new file mode 100644
+index 0000000000..646ad3f0de
+--- /dev/null
++++ b/drivers/amlogic/storagekey/storagekey.c
+@@ -0,0 +1,587 @@
++/*
++ * drivers/storagekey/storagekey.c
++ *
++ * Copyright (C) 2015 Amlogic, Inc. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ * You should have received a copy of the GNU General Public License along
++ * with this program; if not, write to the Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
++*/
++
++/* extern from bl31 */
++/*
++ * when RET_OK
++ * query: retval=1: key exsit,=0: key not exsit；
++ * tell: retvak = key size
++ * status: retval=1: secure, retval=0: non-secure
++
++ */
++
++#include <common.h>
++#include <linux/types.h>
++#include <amlogic/secure_storage.h>
++#include <amlogic/amlkey_if.h>
++#include <amlogic/storage.h>
++#include <fdtdec.h>
++#ifdef CONFIG_STORE_COMPATIBLE
++#include <partition_table.h>
++#endif
++#include "normal_key.h"
++
++/* key buffer status */
++/* bit0, dirty flag*/
++#define KEYBUFFER_CLEAN		(0 << 0)
++#define KEYBUFFER_DIRTY		(1 << 0)
++#define SECUESTORAGE_HEAD_SIZE		(256)
++#define SECUESTORAGE_WHOLE_SIZE		(0x40000)
++
++struct storagekey_info_t {
++	uint8_t * buffer;
++	uint32_t size;
++	uint32_t status;
++};
++
++static struct storagekey_info_t storagekey_info = {
++	.buffer = NULL,
++	/* default size */
++	.size = SECUESTORAGE_WHOLE_SIZE,
++	.status = KEYBUFFER_CLEAN,
++};
++
++/**
++ *1.init
++ * return ok 0, fail 1
++ */
++static int32_t _amlkey_init(uint8_t *seed, uint32_t len, int encrypt_type)
++{
++	int32_t ret = 0;
++	uint32_t buffer_size, actual_size;
++
++	/* do nothing for now*/
++	printf("%s() enter!\n", __func__);
++	if (storagekey_info.buffer != NULL) {
++		printf("%s() %d: already init!\n", __func__, __LINE__);
++		goto _out;
++	}
++
++	/* get buffer from bl31 */
++	storagekey_info.buffer = secure_storage_getbuffer(&buffer_size);
++	if (storagekey_info.buffer == NULL) {
++		printf("%s() %d: can't get buffer from bl31!\n",
++			__func__, __LINE__);
++		ret = -1;
++		goto _out;
++	}
++
++	if (encrypt_type == -1)
++		encrypt_type = 0;
++	secure_storage_set_enctype(encrypt_type);
++	actual_size = store_rsv_size("key");
++	printf("%s %d actual_size: 0x%x\n", __func__, __LINE__,
++		actual_size);
++
++	storagekey_info.size = min_t(uint32_t, actual_size, buffer_size);
++	ret = store_rsv_read("key", storagekey_info.size, storagekey_info.buffer);
++	/* When the key is invalid at the first burn, it should be initialized again. */
++	if (ret == RSV_UNVAIL)
++		ret = 0;
++	if (ret) {
++		printf("amlkey init rsv read key faill\n");
++		/* memset head info for bl31 */
++		memset(storagekey_info.buffer, 0, SECUESTORAGE_HEAD_SIZE);
++		ret = 0;
++		goto _out;
++	}
++
++	secure_storage_notifier_ex(storagekey_info.size, 0);
++
++	storagekey_info.buffer = secure_storage_getbuffer(&buffer_size);
++	if (buffer_size != storagekey_info.size) {
++		ret = -1;
++		goto _out;
++	}
++
++#ifdef CONFIG_STORE_COMPATIBLE
++	info_disprotect &= ~DISPROTECT_KEY;  //protect
++#endif
++_out:
++	return ret;
++}
++
++/**
++ *2. query if the key already programmed
++ * return: exsit 1, non 0
++ */
++static int32_t _amlkey_isexsit(const uint8_t * name)
++{
++	int32_t ret = 0;
++	uint32_t retval;
++
++	if ( NULL == name ) {
++		printf("%s() %d, invalid key ", __func__, __LINE__);
++		return 0;
++	}
++
++	ret = secure_storage_query((uint8_t *)name, &retval);
++	if (ret) {
++		printf("%s() %d: ret %d\n", __func__, __LINE__, ret);
++		retval = 0;
++	}
++
++	return (int32_t)retval;
++}
++
++static uint32_t _amlkey_get_attr(const uint8_t * name)
++{
++	int32_t ret = 0;
++	uint32_t retval;
++
++	if ( NULL == name ) {
++		printf("%s() %d, invalid key ", __func__, __LINE__);
++		return 0;
++	}
++
++	ret = secure_storage_status((uint8_t *)name, &retval);
++	if (ret) {
++		printf("%s() %d: ret %d\n", __func__, __LINE__, ret);
++		retval = 0;
++	}
++
++	return retval;
++}
++
++/**
++ * 3.1 query if the prgrammed key is secure. key must exsit!
++ * return secure 1, non 0;
++ */
++int32_t amlkey_issecure(const uint8_t * name)
++{
++	return (amlkey_get_attr(name)&UNIFYKEY_ATTR_SECURE_MASK);
++}
++
++/**
++ * 3.2 query if the prgrammed key is encrypt
++ * return encrypt 1, non-encrypt 0;
++ */
++int32_t amlkey_isencrypt(const uint8_t * name)
++{
++	return (amlkey_get_attr(name)&UNIFYKEY_ATTR_ENCRYPT_MASK);
++}
++/**
++ * 4. actual bytes of key value
++ *  return actual size.
++ */
++static ssize_t _amlkey_size(const uint8_t *name)
++{
++	ssize_t size = 0;
++	int32_t ret = 0;
++	uint32_t retval;
++
++	if ( NULL == name ) {
++		printf("%s() %d, invalid key ", __func__, __LINE__);
++		return 0;
++	}
++
++	ret = secure_storage_tell((uint8_t *)name, &retval);
++	if (ret) {
++		printf("%s() %d: ret %d\n", __func__, __LINE__, ret);
++		retval = 0;
++	}
++	size = (ssize_t)retval;
++	return size;
++}
++
++/**
++ *5. read non-secure key in bytes, return bytes readback actully.
++ * return actual size read back.
++ */
++static ssize_t _amlkey_read(const uint8_t *name, uint8_t *buffer, uint32_t len)
++{
++	int32_t ret = 0;
++	ssize_t retval = 0;
++	uint32_t actul_len;
++
++	if ( NULL == name ) {
++		printf("%s() %d, invalid key ", __func__, __LINE__);
++		return 0;
++	}
++	ret = secure_storage_read((uint8_t *)name, buffer, len, &actul_len);
++	if (ret) {
++		printf("%s() %d: return %d\n", __func__, __LINE__, ret);
++		retval = 0;
++		goto _out;
++	}
++	retval = actul_len;
++_out:
++	return retval;
++}
++
++/**
++ * 6.write secure/non-secure key in bytes , return bytes readback actully
++ * attr: bit0, secure/non-secure;
++ *		 bit8, encrypt/non-encrypt;
++ * return actual size write down.
++ */
++static ssize_t _amlkey_write(const uint8_t *name, uint8_t *buffer, uint32_t len, uint32_t attr)
++{
++	int32_t ret = 0;
++	ssize_t retval = 0;
++	uint32_t actual_size;
++
++	if ( NULL == name ) {
++		printf("%s() %d, invalid key ", __func__, __LINE__);
++		return retval;
++	}
++	ret = secure_storage_write((uint8_t *)name, buffer, len, attr);
++	if (ret) {
++		printf("%s() %d: return %d\n", __func__, __LINE__, ret);
++		retval = 0;
++		goto _out;
++	} else {
++		retval = (ssize_t)len;
++		/* write down! */
++		if (storagekey_info.buffer != NULL) {
++            ret = store_rsv_write("key", storagekey_info.size, storagekey_info.buffer);
++			if (ret) {
++				printf("%s() %d, store_key_write fail\n",
++					__func__, __LINE__);
++				retval = 0;
++			}
++            actual_size = storagekey_info.size;
++		}
++	}
++_out:
++	return retval;
++}
++/**
++ * 7. get the hash value of programmed secure key | 32bytes length, sha256
++ * return success 0, fail -1
++ */
++static int32_t _amlkey_hash_4_secure(const uint8_t * name, uint8_t * hash)
++{
++	int32_t ret = 0;
++
++	ret = secure_storage_verify((uint8_t *)name, hash);
++
++	return ret;
++}
++
++/**
++ * 7. del key by name
++ * return success 0, fail -1
++ */
++static int32_t _amlkey_del(const uint8_t * name)
++{
++	int32_t ret = 0;
++	uint32_t actual_size;
++
++	ret = secure_storage_remove((uint8_t *)name);
++	if ((ret == 0) && (storagekey_info.buffer != NULL)) {
++		/* flush back */
++        ret = store_rsv_write("key", storagekey_info.size, storagekey_info.buffer);
++		if (ret) {
++			printf("%s() %d, store_key_write fail\n",
++				__func__, __LINE__);
++		}
++	} else {
++		printf("%s() %d, remove key fail\n",
++			__func__, __LINE__);
++	}
++
++	return ret;
++}
++
++
++
++#define DEFINE_MUTEX(...)
++#define mutex_lock(...)
++#define mutex_unlock(...)
++#define PAGE_ALIGNED(a) (((a)&0xFFF)==0)
++#undef pr_info
++#define pr_info(fmt ...)     printf("[KM]Msg:"fmt)
++#undef pr_err
++#define pr_err(fmt ...)     printf("[KM]Error:f[%s]L%d:", __func__, __LINE__),printf(fmt)
++
++#define DEF_NORMAL_BLOCK_SIZE	(256 * 1024)
++//static DEFINE_MUTEX(normalkey_lock);
++static uint32_t normal_blksz = DEF_NORMAL_BLOCK_SIZE;
++static uint32_t normal_flashsize = DEF_NORMAL_BLOCK_SIZE;
++static uint8_t *normal_block;
++
++static int _store_key_read(uint8_t * buffer, uint32_t length, uint32_t *actual_lenth)
++{
++	int ret;
++	uint32_t actual_size;
++	actual_size = store_rsv_size("key");
++	if (actual_size <= 1024)
++		return -1;
++
++	length = min_t(uint32_t, actual_size, length);
++	ret = store_rsv_read("key", length, buffer);
++	/* When the key is invalid at the first burn, it should be initialized again. */
++	if (ret && ret != RSV_UNVAIL) {
++		printf("amlkey init rsv read key faill\n");
++		return -1;
++	}
++	if (actual_lenth)
++		*actual_lenth = length;
++	return 0;
++}
++static int _store_key_write(uint8_t * buffer, uint32_t length, uint32_t *actual_lenth)
++{
++	int32_t ret;
++	ret = store_rsv_write("key", length, buffer);
++	if (ret)
++		return -1;
++	if (actual_lenth)
++		*actual_lenth = length;
++	return 0;
++}
++
++static int32_t _amlkey_init_normal(uint8_t *seed, uint32_t len, int encrypt_type)
++{
++	static int inited = 0;
++	int ret;
++
++	if (inited)
++		return 0;
++	inited = 1;
++
++	if (!normal_block)
++		return -1;
++
++	if (normalkey_init())
++		return -1;
++
++	mutex_lock(&normalkey_lock);
++	ret = _store_key_read(normal_block,
++			     normal_blksz,
++			     &normal_flashsize);
++	if (ret) {
++		pr_err("read storage fail\n");
++		goto finish;
++	}
++
++	ret = normalkey_readfromblock(normal_block, normal_flashsize);
++	if (ret) {
++		pr_err("init block key fail\n");
++		goto finish;
++	}
++
++#ifdef CONFIG_STORE_COMPATIBLE
++	info_disprotect &= ~DISPROTECT_KEY;  //protect
++#endif
++	ret = 0;
++finish:
++	if (ret)
++		normalkey_deinit();
++	mutex_unlock(&normalkey_lock);
++
++	return ret;
++}
++
++static int32_t _amlkey_exist_normal(const uint8_t *name)
++{
++	struct storage_object *obj;
++
++	mutex_lock(&normalkey_lock);
++	obj = normalkey_get(name);
++	mutex_unlock(&normalkey_lock);
++
++	return !!obj;
++}
++
++static uint32_t _amlkey_get_attr_normal(const uint8_t *name)
++{
++	uint32_t attr = 0;
++	struct storage_object *obj;
++
++	mutex_lock(&normalkey_lock);
++	obj = normalkey_get(name);
++	if (obj)
++		attr = obj->attribute;
++	mutex_unlock(&normalkey_lock);
++
++	return attr;
++}
++
++static ssize_t _amlkey_size_normal(const uint8_t *name)
++{
++	unsigned int size = 0;
++	struct storage_object *obj;
++
++	mutex_lock(&normalkey_lock);
++	obj = normalkey_get(name);
++	if (obj)
++		size = obj->datasize;
++	mutex_unlock(&normalkey_lock);
++
++	return size;
++}
++
++static ssize_t _amlkey_read_normal(const uint8_t *name, uint8_t *buffer, uint32_t len)
++{
++	unsigned int size = 0;
++	struct storage_object *obj;
++
++	mutex_lock(&normalkey_lock);
++	obj = normalkey_get(name);
++	if (obj && len >= obj->datasize) {
++		size = obj->datasize;
++		memcpy(buffer, obj->dataptr, size);
++	}
++	mutex_unlock(&normalkey_lock);
++
++	return size;
++}
++
++static ssize_t _amlkey_write_normal(const uint8_t *name, uint8_t *buffer,
++				    uint32_t len, uint32_t attr)
++{
++	int ret;
++	uint32_t wrtsz = 0;
++
++	if (attr & OBJ_ATTR_SECURE) {
++		pr_err("can't write secure key\n");
++		return 0;
++	}
++
++	mutex_lock(&normalkey_lock);
++	ret = normalkey_add(name, buffer, len, attr);
++	if (ret) {
++		pr_err("write key fail\n");
++		ret = 0;
++		goto unlock;
++	}
++
++	ret = normalkey_writetoblock(normal_block, normal_flashsize);
++	if (ret) {
++		pr_err("write block fail\n");
++		ret = 0;
++		goto unlock;
++	}
++
++	ret = _store_key_write(normal_block,
++			      normal_flashsize,
++			      &wrtsz);
++	if (ret) {
++		pr_err("write storage fail\n");
++		ret = 0;
++		goto unlock;
++	}
++	ret = len;
++unlock:
++	mutex_unlock(&normalkey_lock);
++	return ret;
++}
++
++static int32_t _amlkey_hash_normal(const uint8_t *name, uint8_t *hash)
++{
++	int ret = -1;
++	struct storage_object *obj;
++
++	mutex_lock(&normalkey_lock);
++	obj = normalkey_get(name);
++	if (obj) {
++		ret = 0;
++		memcpy(hash, obj->hashptr, 32);
++	}
++	mutex_unlock(&normalkey_lock);
++
++	return ret;
++}
++
++int normal_key_init(const void* dt_addr)
++{
++	uint32_t blksz = 0;
++	int nodeoffset;
++	char *pblksz;
++
++	if (!dt_addr || fdt_check_header(dt_addr)!= 0) {
++		goto blkalloc;
++	}
++
++	nodeoffset = fdt_path_offset(dt_addr, "/unifykey");
++	if (nodeoffset < 0) {
++		goto blkalloc;
++	}
++
++	pblksz = (char*)fdt_getprop((const void *)dt_addr, nodeoffset, "blocksize",NULL);
++	if (pblksz) {
++		blksz = be32_to_cpup((unsigned int*)pblksz);
++	}
++
++	if (blksz && PAGE_ALIGNED(blksz)) {
++		normal_blksz = blksz;
++		pr_info("block size from config: %x\n", blksz);
++	}
++
++blkalloc:
++	normal_block = malloc(normal_blksz);
++	if (!normal_block) {
++		pr_err("malloc block buffer fail: %x\n", normal_blksz);
++		return -1;
++	}
++
++	return 0;
++}
++
++enum amlkey_if_type {
++	IFTYPE_SECURE_STORAGE,
++	IFTYPE_NORMAL_STORAGE,
++	IFTYPE_MAX
++};
++
++struct amlkey_if amlkey_ifs[] = {
++	[IFTYPE_SECURE_STORAGE] = {
++		.init = _amlkey_init,
++		.exsit = _amlkey_isexsit,
++		.get_attr = _amlkey_get_attr,
++		.size = _amlkey_size,
++		.read = _amlkey_read,
++		.write = _amlkey_write,
++		.hash = _amlkey_hash_4_secure,
++	},
++	[IFTYPE_NORMAL_STORAGE] = {
++		.init = _amlkey_init_normal,
++		.exsit = _amlkey_exist_normal,
++		.get_attr = _amlkey_get_attr_normal,
++		.size = _amlkey_size_normal,
++		.read = _amlkey_read_normal,
++		.write = _amlkey_write_normal,
++		.hash = _amlkey_hash_normal,
++	}
++};
++
++struct amlkey_if *amlkey_if = &amlkey_ifs[IFTYPE_SECURE_STORAGE];
++int amlkey_if_init(const void* dt_addr)
++{
++	static int inited = 0;
++	uint32_t buffer_size;
++	int ret = 0;
++
++	if (inited)
++		return 0;
++	inited = 1;
++
++	if (secure_storage_getbuffer(&buffer_size)) {
++		amlkey_if = &amlkey_ifs[IFTYPE_SECURE_STORAGE];
++		return ret;
++	}
++
++	pr_info("normal key used!\n");
++	ret = normal_key_init(dt_addr);
++	amlkey_if = &amlkey_ifs[IFTYPE_NORMAL_STORAGE];
++
++	return ret;
++}
+diff --git a/drivers/efuse/Kconfig b/drivers/efuse/Kconfig
+new file mode 100644
+index 0000000000..3ee40478a1
+--- /dev/null
++++ b/drivers/efuse/Kconfig
+@@ -0,0 +1,4 @@
++config EFUSE
++	bool "AML EFUSE Support"
++	help
++	  Enable support for the Amlogic EFUSE controller.
+diff --git a/drivers/efuse/Makefile b/drivers/efuse/Makefile
+new file mode 100644
+index 0000000000..62ab0325ba
+--- /dev/null
++++ b/drivers/efuse/Makefile
+@@ -0,0 +1,9 @@
++# SPDX-License-Identifier: GPL-2.0+
++
++obj-$(CONFIG_EFUSE) += aml_efuse.o
++
++obj-$(CONFIG_EFUSE) += efuse.o
++
++obj-$(CONFIG_EFUSE) += efuse_usr_space_api.o
++
++obj-$(CONFIG_EFUSE) += bl31_apis.o
+diff --git a/drivers/efuse/aml_efuse.c b/drivers/efuse/aml_efuse.c
+new file mode 100644
+index 0000000000..a553a201f7
+--- /dev/null
++++ b/drivers/efuse/aml_efuse.c
+@@ -0,0 +1,123 @@
++/*
++ * Copyright (C) 2014-2018 Amlogic, Inc. All rights reserved.
++ *
++ * All information contained herein is Amlogic confidential.
++ *
++ * This software is provided to you pursuant to Software License Agreement
++ * (SLA) with Amlogic Inc ("Amlogic"). This software may be used
++ * only in accordance with the terms of this agreement.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification is strictly prohibited without prior written permission from
++ * Amlogic.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
++ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
++ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
++ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
++ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
++ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
++ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++/*
++ *
++ * Copyright (C) 2018 Amlogic, Inc. All rights reserved.
++*/
++
++#include <common.h>
++#include <amlogic/aml_efuse.h>
++#include <amlogic/asm/io.h>
++#include <amlogic/asm/secure_apb.h>
++
++//weak function for EFUSE license query
++//all following functions are defined with "weak" for customization of each SoC
++//EFUSE_LICX	--> AO_SEC_SD_CFG10/9 --> EFUSE mirror
++int  __attribute__((weak)) IS_FEAT_BOOT_VERIFY(void)
++{
++	#ifndef ADDR_IS_FEAT_BOOT_VERIFY
++	  #ifdef EFUSE_LIC0
++		  #define ADDR_IS_FEAT_BOOT_VERIFY (EFUSE_LIC0)
++		  #define OSET_IS_FEAT_BOOT_VERIFY (0)
++	  #elif defined(OTP_LIC0)
++		  #define ADDR_IS_FEAT_BOOT_VERIFY (OTP_LIC0)
++		  #define OSET_IS_FEAT_BOOT_VERIFY (0)
++	  #else
++		  #define ADDR_IS_FEAT_BOOT_VERIFY (AO_SEC_SD_CFG10)
++		  #define OSET_IS_FEAT_BOOT_VERIFY (4)
++	  #endif
++	#endif
++
++	return ((readl(ADDR_IS_FEAT_BOOT_VERIFY) >> OSET_IS_FEAT_BOOT_VERIFY) & 1);
++
++	#undef ADDR_IS_FEAT_BOOT_VERIFY
++	#undef OSET_IS_FEAT_BOOT_VERIFY
++}
++int  __attribute__((weak)) IS_FEAT_BOOT_ENCRYPT(void)
++{
++	#ifndef ADDR_IS_FEAT_BOOT_ENCRYPT
++	  #ifdef EFUSE_LIC0
++		#define ADDR_IS_FEAT_BOOT_ENCRYPT (EFUSE_LIC0)
++		#define OSET_IS_FEAT_BOOT_ENCRYPT (1)
++	  #elif defined(OTP_LIC0)
++		#define ADDR_IS_FEAT_BOOT_ENCRYPT (OTP_LIC0)
++		#define OSET_IS_FEAT_BOOT_ENCRYPT (1)
++	  #else
++		#define ADDR_IS_FEAT_BOOT_ENCRYPT (AO_SEC_SD_CFG10)
++		#define OSET_IS_FEAT_BOOT_ENCRYPT (28)
++	  #endif
++	#endif
++
++	return ((readl(ADDR_IS_FEAT_BOOT_ENCRYPT) >> OSET_IS_FEAT_BOOT_ENCRYPT) & 1);
++
++	#undef ADDR_IS_FEAT_BOOT_ENCRYPT
++	#undef OSET_IS_FEAT_BOOT_ENCRYPT
++}
++
++int  __attribute__((weak)) IS_FEAT_DIS_EMMC_USER(void)
++{
++	return 0;
++}
++
++int  __attribute__((weak)) IS_FEAT_DIS_EMMC_BOOT_0(void)
++{
++	return 0;
++}
++
++int  __attribute__((weak)) IS_FEAT_DIS_EMMC_BOOT_1(void)
++{
++	return 0;
++}
++
++int  __attribute__((weak)) IS_FEAT_EN_4BL2_SNOR(void)
++{
++	return 0;
++}
++
++int  __attribute__((weak)) IS_FEAT_DIS_NBL2_SNOR(void)
++{
++	return 0;
++}
++
++int  __attribute__((weak)) IS_FEAT_EN_8BL2_SNAND(void)
++{
++	return 0;
++}
++
++int  __attribute__((weak)) IS_FEAT_DIS_NBL2_SNAND(void)
++{
++	return 0;
++}
++
++int  __attribute__((weak)) IS_FEAT_DIS_8BL2_NAND(void)
++{
++	return 0;
++}
++
++int  __attribute__((weak)) IS_FEAT_DIS_NBL2_NAND(void)
++{
++	return 1;
++}
+diff --git a/drivers/efuse/bl31_apis.c b/drivers/efuse/bl31_apis.c
+new file mode 100644
+index 0000000000..18f6fc6968
+--- /dev/null
++++ b/drivers/efuse/bl31_apis.c
+@@ -0,0 +1,474 @@
++/*
++ * arch/arm/cpu/armv8/txlx/bl31_apis.c
++ *
++ * Copyright (C) 2014-2017 Amlogic, Inc. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ * You should have received a copy of the GNU General Public License along
++ * with this program; if not, write to the Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
++ */
++
++/*
++ * Trustzone API
++ */
++
++#include <amlogic/asm/io.h>
++#include <amlogic/asm/efuse.h>
++#include <asm/cache.h>
++#include <amlogic/asm/bl31_apis.h>
++#include <amlogic/cpu_id.h>
++#include <amlogic/asm/secure_apb.h>
++
++static long sharemem_input_base;
++static long sharemem_output_base;
++
++long get_sharemem_info(unsigned long function_id)
++{
++	asm volatile(
++		__asmeq("%0", "x0")
++		"smc    #0\n"
++		: "+r" (function_id));
++
++	return function_id;
++}
++
++int32_t set_boot_params(const keymaster_boot_params *boot_params)
++{
++	const unsigned cmd = SET_BOOT_PARAMS;
++
++	if (!boot_params)
++		return -1;
++
++	if (!sharemem_input_base)
++		sharemem_input_base =
++			get_sharemem_info(GET_SHARE_MEM_INPUT_BASE);
++
++	memcpy((void *)sharemem_input_base,
++			(const void *)boot_params, sizeof(keymaster_boot_params));
++
++	asm __volatile__("" : : : "memory");
++	register uint64_t x0 asm("x0") = cmd;
++	register uint64_t x1 asm("x1") = sizeof(keymaster_boot_params);
++	do {
++		asm volatile(
++		    __asmeq("%0", "x0")
++		    __asmeq("%1", "x0")
++		    __asmeq("%2", "x1")
++		    "smc    #0\n"
++		    : "=r"(x0)
++		    : "r"(x0), "r"(x1));
++	} while (0);
++
++	return (!x0)? -1: 0;
++}
++
++#ifdef CONFIG_EFUSE
++int32_t meson_trustzone_efuse(struct efuse_hal_api_arg *arg)
++{
++	int ret;
++	unsigned cmd, offset, size;
++	unsigned long *retcnt = (unsigned long *)(arg->retcnt_phy);
++
++	if (!sharemem_input_base)
++		sharemem_input_base =
++			get_sharemem_info(GET_SHARE_MEM_INPUT_BASE);
++	if (!sharemem_output_base)
++		sharemem_output_base =
++			get_sharemem_info(GET_SHARE_MEM_OUTPUT_BASE);
++
++	if (arg->cmd == EFUSE_HAL_API_READ)
++		cmd = EFUSE_READ;
++	else if (arg->cmd == EFUSE_HAL_API_WRITE)
++		cmd = EFUSE_WRITE;
++	else
++		cmd = EFUSE_WRITE_PATTERN;
++	offset = arg->offset;
++	size = arg->size;
++
++	if (arg->cmd == EFUSE_HAL_API_WRITE)
++		memcpy((void *)sharemem_input_base,
++		       (const void *)arg->buffer_phy, size);
++		asm __volatile__("" : : : "memory");
++
++	register uint64_t x0 asm("x0") = cmd;
++	register uint64_t x1 asm("x1") = offset;
++	register uint64_t x2 asm("x2") = size;
++	do {
++		asm volatile(
++		    __asmeq("%0", "x0")
++		    __asmeq("%1", "x0")
++		    __asmeq("%2", "x1")
++		    __asmeq("%3", "x2")
++		    "smc    #0\n"
++		    : "=r"(x0)
++		    : "r"(x0), "r"(x1), "r"(x2));
++	} while (0);
++	ret = x0;
++	*retcnt = x0;
++
++	if ((arg->cmd == EFUSE_HAL_API_READ) && (ret != 0))
++		memcpy((void *)arg->buffer_phy,
++		       (const void *)sharemem_output_base, ret);
++
++	if (!ret)
++		return -1;
++	else
++		return 0;
++}
++
++int32_t meson_trustzone_efuse_get_max(struct efuse_hal_api_arg *arg)
++{
++	int32_t ret;
++	unsigned cmd;
++
++	if (arg->cmd == EFUSE_HAL_API_USER_MAX)
++		cmd = EFUSE_USER_MAX;
++
++	asm __volatile__("" : : : "memory");
++
++	register uint64_t x0 asm("x0") = cmd;
++
++	do {
++		asm volatile(
++		    __asmeq("%0", "x0")
++		    __asmeq("%1", "x0")
++		    "smc    #0\n"
++		    : "=r"(x0)
++		    : "r"(x0));
++	} while (0);
++	ret = x0;
++
++	if (!ret)
++		return -1;
++	else
++		return ret;
++}
++
++ssize_t meson_trustzone_efuse_writepattern(const char *buf, size_t count)
++{
++	struct efuse_hal_api_arg arg;
++	unsigned long retcnt;
++
++	if (count != EFUSE_BYTES)
++		return 0;	/* Past EOF */
++
++	arg.cmd = EFUSE_HAL_API_WRITE_PATTERN;
++	arg.offset = 0;
++	arg.size = count;
++	arg.buffer_phy = (unsigned long)buf;
++	arg.retcnt_phy = (unsigned long)&retcnt;
++	int ret;
++	ret = meson_trustzone_efuse(&arg);
++	return ret;
++}
++#endif
++
++uint64_t meson_trustzone_efuse_check(unsigned char *addr)
++{
++	uint64_t ret = 0;
++	struct sram_hal_api_arg arg = {};
++
++	arg.cmd = SRAM_HAL_API_CHECK_EFUSE;
++	arg.req_len = 0x1000000;
++	arg.res_len = 0;
++	arg.req_phy_addr = (unsigned long)addr;
++	arg.res_phy_addr = (unsigned long)NULL;
++
++	asm __volatile__("" : : : "memory");
++
++	register uint64_t x0 asm("x0") = CALL_TRUSTZONE_HAL_API;
++	register uint64_t x1 asm("x1") = TRUSTZONE_HAL_API_SRAM;
++	register uint64_t x2 asm("x2") = (unsigned long)(&arg);
++	do {
++		asm volatile(
++		    __asmeq("%0", "x0")
++		    __asmeq("%1", "x0")
++		    __asmeq("%2", "x1")
++		    __asmeq("%3", "x2")
++		    "smc #0\n"
++		    : "=r"(x0)
++		    : "r"(x0), "r"(x1), "r"(x2));
++	} while (0);
++
++	ret = x0;
++
++	return ret;
++}
++
++void debug_efuse_cmd(unsigned long cmd)
++{
++	asm volatile(
++		__asmeq("%0", "x0")
++		"smc    #0\n"
++		: : "r" (cmd));
++}
++
++void bl31_debug_efuse_write_pattern(const char *buf)
++{
++	if (!sharemem_input_base)
++		sharemem_input_base =
++			get_sharemem_info(GET_SHARE_MEM_INPUT_BASE);
++	memcpy((void *)sharemem_input_base, (const void *)buf, 512);
++
++	debug_efuse_cmd(DEBUG_EFUSE_WRITE_PATTERN);
++}
++
++void bl31_debug_efuse_read_pattern(char *buf)
++{
++	if (!sharemem_output_base)
++		sharemem_output_base =
++			get_sharemem_info(GET_SHARE_MEM_OUTPUT_BASE);
++	debug_efuse_cmd(DEBUG_EFUSE_READ_PATTERN);
++
++	memcpy((void *)buf, (const void *)sharemem_output_base, 512);
++}
++
++void aml_set_jtag_state(unsigned state, unsigned select)
++{
++	uint64_t command;
++	if (state == JTAG_STATE_ON)
++		command = JTAG_ON;
++	else
++		command = JTAG_OFF;
++	asm __volatile__("" : : : "memory");
++
++	asm volatile(
++		__asmeq("%0", "x0")
++		__asmeq("%1", "x1")
++		"smc    #0\n"
++		: : "r" (command), "r"(select));
++}
++
++unsigned aml_get_reboot_reason(void)
++{
++	unsigned reason;
++	uint64_t ret;
++
++	register uint64_t x0 asm("x0") = GET_REBOOT_REASON;
++	asm volatile(
++		__asmeq("%0", "x0")
++		"smc #0\n"
++		:"+r"(x0));
++		ret = x0;
++		reason = (unsigned)(ret&0xffffffff);
++		return reason;
++}
++
++void set_viu_probe_enable(void)
++{
++	register uint64_t x0 asm("x0") = VIU_PREOBE_EN;
++
++	asm volatile(
++			__asmeq("%0", "x0")
++			"smc #0\n"
++			:"+r"(x0));
++}
++unsigned aml_reboot(uint64_t function_id, uint64_t arg0, uint64_t arg1, uint64_t arg2)
++{
++	register long x0 asm("x0") = function_id;
++	register long x1 asm("x1") = arg0;
++	register long x2 asm("x2") = arg1;
++	register long x3 asm("x3") = arg2;
++	asm volatile(
++			__asmeq("%0", "x0")
++			__asmeq("%1", "x1")
++			__asmeq("%2", "x2")
++			__asmeq("%3", "x3")
++			"smc	#0\n"
++		: "+r" (x0)
++		: "r" (x1), "r" (x2), "r" (x3));
++
++	return function_id;
++}
++
++void aml_set_reboot_reason(uint64_t function_id, uint64_t arg0, uint64_t arg1, uint64_t arg2)
++{
++	register long x0 asm("x0") = function_id;
++	register long x1 asm("x1") = arg0;
++	register long x2 asm("x2") = arg1;
++	register long x3 asm("x3") = arg2;
++	asm volatile(
++			__asmeq("%0", "x0")
++			__asmeq("%1", "x1")
++			__asmeq("%2", "x2")
++			__asmeq("%3", "x3")
++			"smc	#0\n"
++			: "+r" (x0)
++			: "r" (x1), "r" (x2), "r" (x3));
++
++	return ;
++}
++
++unsigned long aml_sec_boot_check(unsigned long nType,
++	unsigned long pBuffer,
++	unsigned long nLength,
++	unsigned long nOption)
++{
++	uint64_t ret = 1;
++
++//#define AML_SECURE_LOG_TE
++
++#if defined(AML_SECURE_LOG_TE)
++	#define AML_GET_TE(a) do{a = *((volatile unsigned int*)0xc1109988);}while(0);
++	unsigned nT1,nT2,nT3;
++#else
++	#define AML_GET_TE(...)
++#endif
++
++	AML_GET_TE(nT1);
++
++	asm __volatile__("" : : : "memory");
++
++	register uint64_t x0 asm("x0") = AML_DATA_PROCESS;
++	register uint64_t x1 asm("x1") = nType;
++	register uint64_t x2 asm("x2") = pBuffer;
++	register uint64_t x3 asm("x3") = nLength;
++	register uint64_t x4 asm("x4") = nOption;
++
++	do {
++		asm volatile(
++		    __asmeq("%0", "x0")
++		    __asmeq("%1", "x0")
++		    __asmeq("%2", "x1")
++		    __asmeq("%3", "x2")
++		    __asmeq("%4", "x3")
++		    __asmeq("%5", "x4")
++		    "smc #0\n"
++		    : "=r"(x0)
++		    : "r"(x0), "r"(x1), "r"(x2),"r"(x3),"r"(x4));
++	} while (0);
++
++	ret = x0;
++
++	AML_GET_TE(nT2);;
++
++	flush_dcache_range((unsigned long )pBuffer, (unsigned long )pBuffer+nLength);
++
++	AML_GET_TE(nT3);
++
++#if defined(AML_SECURE_LOG_TE)
++	printf("aml log : dec use %d(us) , flush cache used %d(us)\n",
++		nT2 - nT1, nT3 - nT2);
++#endif
++
++	return ret;
++}
++
++void set_usb_boot_function(unsigned long command)
++{
++	register long x0 asm("x0") = SET_USB_BOOT_FUNC;
++	register long x1 asm("x1") = command;
++
++	asm volatile(
++			__asmeq("%0", "x0")
++			__asmeq("%1", "x1")
++			"smc	#0\n"
++		: "+r" (x0)
++		: "r" (x1));
++}
++
++void aml_system_off(void)
++{
++	/* TODO: Add poweroff capability */
++	aml_reboot(0x82000042, 1, 0, 0);
++	aml_reboot(0x84000008, 0, 0, 0);
++}
++
++int __get_chip_id(unsigned char *buff, unsigned int size)
++{
++	if (buff == NULL || size < 16)
++		return -1;
++
++	if (!sharemem_output_base)
++		sharemem_output_base =
++			get_sharemem_info(GET_SHARE_MEM_OUTPUT_BASE);
++
++	if (sharemem_output_base) {
++		register long x0 asm("x0") = GET_CHIP_ID;
++		register long x1 asm("x1") = 2;
++
++		asm volatile(
++			__asmeq("%0", "x0")
++			__asmeq("%1", "x1")
++				"smc	#0\n"
++			: "+r" (x0)
++			: "r" (x1));
++
++		if (x0 == 0) {
++			int version = *((unsigned int *)sharemem_output_base);
++
++			if (version == 2) {
++				memcpy(buff, (void *)sharemem_output_base + 4, 16);
++			}
++			else {
++				/**
++				 * Legacy 12-byte chip ID read out, transform data
++				 * to expected order format.
++				 */
++				uint32_t chip_info = readl(P_AO_SEC_SD_CFG8);
++				uint8_t *ch;
++				int i;
++
++				((uint32_t *)buff)[0] =
++					((chip_info & 0xff000000)	|	// Family ID
++					((chip_info << 8) & 0xff0000)	|	// Chip Revision
++					((chip_info >> 8) & 0xff00));		// Package ID
++
++				((uint32_t *)buff)[0] = htonl(((uint32_t *)buff)[0]);
++
++				/* Transform into expected order for display */
++				ch = (uint8_t *)(sharemem_output_base + 4);
++				for (i = 0; i < 12; i++)
++					buff[i + 4] = ch[11 - i];
++			}
++
++			return 0;
++		}
++	}
++
++	return -1;
++}
++
++int32_t get_avbkey_from_fip(uint8_t *buf, uint32_t buflen)
++{
++	const unsigned cmd = GET_AVBKEY_FROM_FIP;
++	uint32_t retlen = 0;
++	uint32_t ret = 0;
++
++	if (!buf)
++		return -1;
++
++	if (!sharemem_output_base)
++		sharemem_output_base =
++			get_sharemem_info(GET_SHARE_MEM_OUTPUT_BASE);
++
++	asm __volatile__("" : : : "memory");
++	register uint64_t x0 asm("x0") = cmd;
++	do {
++		asm volatile(
++		    __asmeq("%0", "x0")
++		    __asmeq("%1", "x0")
++		    "smc    #0\n"
++		    : "=r"(x0)
++		    : "r"(x0));
++	} while (0);
++
++	if (!x0)
++		ret = -1;
++	retlen = x0;
++
++	if (ret != -1 && buflen >= retlen)
++		memcpy(buf, (const void *)sharemem_output_base, retlen);
++
++	return ret;
++}
+diff --git a/drivers/efuse/efuse.c b/drivers/efuse/efuse.c
+new file mode 100644
+index 0000000000..5560bcd384
+--- /dev/null
++++ b/drivers/efuse/efuse.c
+@@ -0,0 +1,141 @@
++/*
++ * drivers/efuse/efuse.c
++ *
++ * Copyright (C) 2018 Amlogic, Inc. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ * You should have received a copy of the GNU General Public License along
++ * with this program; if not, write to the Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
++ */
++
++#include <config.h>
++#include <common.h>
++#include <command.h>
++#include <amlogic/asm/io.h>
++#include <amlogic/asm/efuse.h>
++
++char efuse_buf[EFUSE_BYTES] = {0};
++
++ssize_t efuse_read(char *buf, size_t count, loff_t *ppos)
++{
++	unsigned int pos = *ppos;
++
++	struct efuse_hal_api_arg arg;
++	unsigned int retcnt;
++	int ret;
++
++	arg.cmd = EFUSE_HAL_API_READ;
++	arg.offset = pos;
++	arg.size = count;
++	arg.buffer_phy = (unsigned long)buf;
++	arg.retcnt_phy = (unsigned long)&retcnt;
++	ret = meson_trustzone_efuse(&arg);
++	if (ret == 0) {
++		*ppos += retcnt;
++		return retcnt;
++	} else{
++		return ret;
++	}
++}
++
++ssize_t efuse_write(const char *buf, size_t count, loff_t *ppos)
++{
++	unsigned int pos = *ppos;
++
++	if ((pos & 0xffff) >= EFUSE_BYTES)
++		return 0;	/* Past EOF */
++	if (count > EFUSE_BYTES - pos)
++		count = EFUSE_BYTES - pos;
++	if (count > EFUSE_BYTES)
++		return -1;
++
++	struct efuse_hal_api_arg arg;
++	unsigned int retcnt;
++
++	arg.cmd = EFUSE_HAL_API_WRITE;
++	arg.offset = pos;
++	arg.size = count;
++	arg.buffer_phy = (unsigned long)buf;
++	arg.retcnt_phy = (unsigned long)&retcnt;
++	int ret;
++
++	ret = meson_trustzone_efuse(&arg);
++	if (ret == 0) {
++		*ppos = retcnt;
++		return retcnt;
++	} else{
++		return ret;
++	}
++}
++
++int efuse_read_usr(char *buf, size_t count, loff_t *ppos)
++{
++	char data[EFUSE_BYTES];
++	char *pdata = NULL;
++	int ret;
++	loff_t pos;
++
++	memset(data, 0, count);
++
++	pdata = data;
++	pos = *ppos;
++	ret = efuse_read(pdata, count, (loff_t *)&pos);
++
++	memcpy(buf, data, count);
++
++	return ret;
++}
++
++int efuse_write_usr(char *buf, size_t count, loff_t *ppos)
++{
++	char data[EFUSE_BYTES];
++	char *pdata = NULL;
++	char *penc = NULL;
++	int ret;
++	loff_t pos;
++
++	if (count == 0) {
++		printf("data length: 0 is error!\n");
++		return -1;
++	}
++
++	memset(data, 0, EFUSE_BYTES);
++	memset(efuse_buf, 0, EFUSE_BYTES);
++
++	memcpy(data, buf, count);
++	pdata = data;
++	penc = efuse_buf;
++
++	memcpy(penc, pdata, count);
++	pos = *ppos;
++
++	ret = efuse_write(efuse_buf, count, (loff_t *)&pos);
++
++	return ret;
++}
++
++uint32_t efuse_get_max(void)
++{
++	struct efuse_hal_api_arg arg;
++	int ret;
++
++	arg.cmd = EFUSE_HAL_API_USER_MAX;
++
++	ret = meson_trustzone_efuse_get_max(&arg);
++	if (ret == 0) {
++		printf("ERROR: can not get efuse user max bytes!!!\n");
++		return -1;
++	} else{
++		return ret;
++	}
++}
+diff --git a/drivers/efuse/efuse_usr_space_api.c b/drivers/efuse/efuse_usr_space_api.c
+new file mode 100644
+index 0000000000..cf9d8edb16
+--- /dev/null
++++ b/drivers/efuse/efuse_usr_space_api.c
+@@ -0,0 +1,379 @@
++/*
++ * \file        efuse_usr_space_api.c
++ * \brief       support read/write user space using keyname mode
++ *              mapping keyname to offset by looking /efusekey in dtb
++ *
++ * \version     1.0.0
++ * \date        15/07/14
++ * \author      Sam.Wu <yihui.wu@amlgic.com>
++ *
++ * Copyright (c) 2015 Amlogic. All Rights Reserved.
++ *
++ */
++#include <config.h>
++#include <common.h>
++#include <command.h>
++#include <malloc.h>
++#include <linux/ctype.h>
++#include <amlogic/asm/efuse.h>
++#include <linux/libfdt.h>
++
++#define EFUSE_DBG(fmt...)   //printf("[EFUSE_DBG]"fmt)
++#define EFUSE_MSG(fmt...)   printf("[EFUSE_MSG]"fmt)
++#define EFUSE_ERR(fmt...)   printf("[EFUSE_ERR]f(%s)L%d:", __func__, __LINE__),printf(fmt)
++
++struct efusekey_info{
++	char keyname[32];
++	unsigned offset;
++	unsigned size;
++};
++
++static struct _efuseCfgInf{
++    unsigned                initMaigc;//magic to indicate whether inited
++    unsigned                totalCfgKeyNums;
++    struct efusekey_info *  pKeyInf;
++}
++_efuseKeyInfos = {.totalCfgKeyNums = 0, .pKeyInf = NULL};
++
++int efuse_usr_api_init_dtb(const char*  dt_addr)
++{
++	int nodeoffset, poffset = 0;
++	char propname[32];
++	const void* phandle;
++	int ret;
++	int index;
++	uint32_t max_size;
++    unsigned efusekeynum = 0;
++    struct efusekey_info * efusekey_infos = NULL;
++
++	ret = fdt_check_header(dt_addr);
++	if (ret < 0) {
++		EFUSE_ERR("fdt check failed [%s]\n", fdt_strerror(ret));
++        return __LINE__;
++    }
++    _efuseKeyInfos.initMaigc = 0;
++
++	nodeoffset = fdt_path_offset(dt_addr, "/efusekey");
++	if (nodeoffset < 0) {
++		EFUSE_ERR("not find /efusekey node [%s].\n", fdt_strerror(nodeoffset));
++        return __LINE__;
++    }
++
++	phandle = fdt_getprop(dt_addr, nodeoffset, "keynum", NULL);
++	efusekeynum = be32_to_cpup((u32 *)phandle);
++	EFUSE_MSG("keynum is %x\n", efusekeynum);
++
++    if (efusekey_infos) free(efusekey_infos) ;
++    efusekey_infos = (struct efusekey_info *)malloc(sizeof (struct efusekey_info) *efusekeynum);
++    if (!efusekey_infos) {
++        EFUSE_ERR("malloc err\n");
++        return __LINE__;
++    }
++
++	max_size = efuse_get_max();
++
++	for (index = 0; index < efusekeynum; index++)
++    {
++        struct efusekey_info* theKeyInf = efusekey_infos + index;
++		sprintf(propname, "key%d", index);
++		/* printf("%s: propname: %s\n",__func__,propname); */
++		phandle = fdt_getprop(dt_addr, nodeoffset, propname, NULL);
++		if (!phandle) {
++			EFUSE_ERR("don't find  match %s\n", propname);
++			goto err;
++		}
++        poffset = fdt_node_offset_by_phandle(dt_addr,
++                be32_to_cpup((u32 *)phandle));
++        if (!poffset) {
++            EFUSE_ERR("can't find device node for key[%s]\n", propname);
++            goto err;
++        }
++
++
++		phandle = fdt_getprop(dt_addr, poffset, "keyname", NULL);
++        if (!phandle) {
++            EFUSE_ERR("Can't find keyname for key[%d]\n", index);
++            goto err;
++        }
++		strcpy(theKeyInf->keyname, phandle);
++
++		phandle = fdt_getprop(dt_addr, poffset, "offset", NULL);
++        if (!phandle) {
++            EFUSE_ERR("Can't find offset for key[%s]\n", theKeyInf->keyname);
++            goto err;
++        }
++		theKeyInf->offset = be32_to_cpup((u32 *)phandle);
++
++		phandle = fdt_getprop(dt_addr, poffset, "size", NULL);
++        if (!phandle) {
++            EFUSE_ERR("Can't find size for key[%s]\n", theKeyInf->keyname);
++            goto err;
++        }
++		theKeyInf->size = be32_to_cpup((u32 *)phandle);
++
++		EFUSE_DBG("key[%02d] name=%12s, offset=0x%04x, size=0x%04x\n",
++                index, theKeyInf->keyname, theKeyInf->offset, theKeyInf->size);
++        if (theKeyInf->offset + theKeyInf->size > max_size) {
++            EFUSE_ERR("\n offset (0x%x) + size (0x%x) > max [0x%x]!\n", theKeyInf->offset, theKeyInf->size, max_size);
++            return __LINE__;
++        }
++	}
++
++    _efuseKeyInfos.totalCfgKeyNums = efusekeynum;
++    _efuseKeyInfos.pKeyInf         = efusekey_infos;
++    EFUSE_DBG("%s success!\n", __func__);
++    _efuseKeyInfos.initMaigc = 0xee;
++	return 0;
++
++err:
++	free(efusekey_infos);
++	EFUSE_ERR("%s error!\n", __func__);
++	return -1;
++}
++
++static int _get_cfg_key_inf_byname(const char* keyname, const struct efusekey_info ** pKeyInf)
++{
++    int index = 0;
++    struct efusekey_info* theKeyInf = _efuseKeyInfos.pKeyInf;
++    int ret = 0;
++
++    if (0xee != _efuseKeyInfos.initMaigc) {
++        EFUSE_ERR("Pls init first.\n");
++        return __LINE__;
++    }
++    for (; index < _efuseKeyInfos.totalCfgKeyNums; ++index, ++theKeyInf)
++    {
++        const char* theKeyname = theKeyInf->keyname;
++        ret = strcmp(theKeyname, keyname);
++        if (ret) continue;
++
++        *pKeyInf = theKeyInf;
++        return 0;
++    }
++
++    EFUSE_ERR("efuse keyname(%s) not configured\n", keyname);
++    return __LINE__;//Not found the matched name
++}
++
++int efuse_usr_api_get_cfg_key_size(const char* keyname, unsigned* pSz)
++{
++    int ret = 0;
++    const struct efusekey_info* theCfgKeyInf = NULL;
++
++    ret = _get_cfg_key_inf_byname(keyname, &theCfgKeyInf);
++    if (ret) {
++        EFUSE_ERR("not name cfg in dts.\n");
++        return __LINE__;
++    }
++
++    *pSz = theCfgKeyInf->size;
++    return 0;
++}
++
++int efuse_usr_api_write_key(const char* keyname, const void* keydata, const unsigned dataSz)
++{
++    int ret = 0;
++    const struct efusekey_info* theCfgKeyInf = NULL;
++
++    ret = _get_cfg_key_inf_byname(keyname, &theCfgKeyInf);
++    if (ret) {
++        EFUSE_ERR("not name cfg in dts.\n");
++        return __LINE__;
++    }
++    if (dataSz != theCfgKeyInf->size) {
++        EFUSE_ERR("dataSz 0x%x != cfg size 0x%x\n", dataSz, theCfgKeyInf->size);
++        return __LINE__;
++    }
++
++    ret = efuse_write_usr((char*)keydata, theCfgKeyInf->size, (loff_t*)&theCfgKeyInf->offset);
++    if (ret < 0) {
++        EFUSE_ERR("error: efuse write fail.\n");
++        return __LINE__;
++    }
++
++    return 0;
++}
++
++//usrefuse read mac $loadaddr (size)
++int efuse_usr_api_read_key(const char* keyname, void* databuf, const unsigned bufSz)
++{
++    int ret = 0;
++    const struct efusekey_info* theCfgKeyInf = NULL;
++    loff_t offset = 0;
++
++    ret = _get_cfg_key_inf_byname(keyname, &theCfgKeyInf);
++    if (ret) {
++        EFUSE_ERR("not name cfg in dts.\n");
++        return __LINE__;
++    }
++    const unsigned cfgCnt = theCfgKeyInf->size;
++    if (cfgCnt > bufSz && bufSz) {
++        EFUSE_ERR("cfg size 0x%x > bufsz 0x%x\n", cfgCnt, bufSz);
++        return __LINE__;
++    }
++    EFUSE_DBG("keyname=%s, databuf=%p, bufSz=%d, cfgCnt=%u\n", keyname, databuf, bufSz, cfgCnt);
++
++    offset = theCfgKeyInf->offset;
++    memset(databuf, cfgCnt, 0);
++    ret = efuse_read_usr((char*)databuf, cfgCnt, &offset);
++    if (ret == -1) {
++        EFUSE_ERR("ERROR: efuse read user data fail!, size=%u, offset=%llu\n", cfgCnt, offset);
++        return __LINE__;
++    }
++
++    if (ret != cfgCnt) {
++        EFUSE_ERR("ERROR: read %d byte(s) not wanted %d byte(s) data\n", ret, cfgCnt);
++        return __LINE__;
++    }
++
++    return 0;
++}
++
++static int hex_ascii_to_buf(const char* input, uint8_t* buf, const unsigned bufSz)
++{
++    int ret = 0;
++    const char* tmpStr = input;
++    const unsigned inputLen = strlen(input);
++    int i = 0;
++
++    if (!inputLen) {
++        EFUSE_ERR("err input len 0\n");
++        return __LINE__;
++    }
++    if ( ((inputLen>>1)<<1) != inputLen ) {
++        EFUSE_ERR("inputLen %d not even\n", inputLen);
++        return __LINE__;
++    }
++    if (bufSz * 2 > inputLen) {
++        EFUSE_ERR("bufSz %d not enough\n", bufSz);
++        return __LINE__;
++    }
++    for (tmpStr = input; *tmpStr; ++tmpStr)
++    {
++        char c = *tmpStr;
++        ret = isxdigit(c);
++        if (!ret) {
++            EFUSE_ERR("input(%s) contain non xdigit, c=%c\n", input, c);
++            return __LINE__;
++        }
++    }
++
++    for (i = 0; i < inputLen; i += 2)
++    {
++        char tmpByte[8];
++        tmpByte[2] = '\0';
++        tmpByte[0] = input[i];
++        tmpByte[1] = input[i + 1];
++
++        const unsigned val = simple_strtoul(tmpByte, NULL, 16);
++        if (val > 0xff) {
++            EFUSE_ERR("Exception: val 0x%x > 0xff\n", val);
++            return __LINE__;
++        }
++        buf[i>>1] = val;
++    }
++
++    return 0;
++}
++
++static int do_usr_efuse_api(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
++{
++    int ret = 0;
++    const char* subcmd = argv[1];
++    if (argc < 2) return CMD_RET_USAGE;
++
++    if (!strcmp("init", subcmd))
++    {
++        const char* dtbLoadAddr = NULL;
++        if (argc > 2)
++        {
++            dtbLoadAddr = (char*)simple_strtoul(argv[2], NULL, 0);
++        }
++        else
++        {
++            dtbLoadAddr = env_get("dtb_mem_addr");
++            if (!dtbLoadAddr) {
++                env_set("dtb_mem_addr", simple_itoa(CONFIG_SYS_SDRAM_BASE + (16U<<20)));
++            }
++            dtbLoadAddr = (char*)simple_strtoul(dtbLoadAddr, NULL, 0);
++        }
++        ret = efuse_usr_api_init_dtb(dtbLoadAddr);
++    }
++    else if(!strcmp("size", subcmd))
++    {
++        const char* keyname = argv[2];
++        unsigned keysize = argc > 3 ? simple_strtoul(argv[3], NULL, 0) : 0;
++
++        ret = efuse_usr_api_get_cfg_key_size(keyname, &keysize);
++        EFUSE_MSG("keysize=%d\n", keysize);
++    }
++    else if(!strcmp("read", subcmd))
++    {
++        if (argc < 4) return CMD_RET_USAGE;
++        const char* keyname = argv[2];
++        char* databuf = (char*)simple_strtoul(argv[3], NULL, 16);
++        unsigned bufSz = argc > 4 ? simple_strtoul(argv[4], NULL, 0) : 0;
++
++        if (!bufSz)
++        {
++            ret =  efuse_usr_api_get_cfg_key_size(keyname, &bufSz);
++            if (ret) {
++                EFUSE_ERR("Fail in get sz for key[%s]\n", keyname);
++                return __LINE__;
++            }
++        }
++
++        ret = efuse_usr_api_read_key(keyname, databuf, bufSz);
++        if (!ret)
++        {
++            int i = 0;
++            printf("efuse read data");
++            for (i = 0; i < bufSz; i++) {
++                if (i%8 == 0) printf("\n[0x%02x]:", i);
++                printf("%02x ", databuf[i]);
++            }
++            printf("\n");
++        }
++    }
++    else if(!strcmp("write", subcmd))
++    {
++        if (argc < 4) return CMD_RET_USAGE;
++        const char* keyname = argv[2];
++        char* keydata = (char*)simple_strtoul(argv[3], NULL, 16);
++        unsigned bufSz = argc > 4 ? simple_strtoul(argv[4], NULL, 0) : 0;
++        uint8_t* tmpBuf = NULL;
++
++        if (!bufSz)
++        {
++            const char* input = argv[3];
++            bufSz = ( strlen(input) >> 1 );
++            tmpBuf = malloc(bufSz);
++
++            ret = hex_ascii_to_buf(input, tmpBuf, bufSz);
++            if (ret) {
++                EFUSE_ERR("Failed in change hex ascii to buf\n");
++                return __LINE__;
++            }
++            keydata = (char*)tmpBuf;
++        }
++        ret = efuse_usr_api_write_key(keyname, keydata, bufSz);
++        if (tmpBuf) free(tmpBuf) ;
++    }
++
++    return ret ? CMD_RET_FAILURE : CMD_RET_SUCCESS;
++}
++
++U_BOOT_CMD(
++	efuse_user,
++    5,  //max argc
++    1,	//repeatable
++    do_usr_efuse_api,
++	"efuse user space read write ops",
++	"init <dtbAddr>  --- init efuse user space\n"
++	"size keyname <addr>  --- get key size configured in dts\n"
++	"read keyname addr <size> --- read key value to mem addr \n"
++	"write --- write key value\n"
++	"       efuse_user write keyname hexstring --- write key value in hex string\n"
++	"       efuse_user write keyname addr size --- write key value, U need load you key value into mem addr first\n"
++);
++
+-- 
+2.34.1
+

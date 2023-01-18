@@ -1,0 +1,164 @@
+From 3f03660672c077fe09caab90e876a6946cf79806 Mon Sep 17 00:00:00 2001
+From: Viacheslav Bocharov <adeep@lexina.in>
+Date: Wed, 18 Jan 2023 11:42:20 +0300
+Subject: [PATCH 08/17] jethome-emmc: Add AML Partition support
+
+Signed-off-by: Viacheslav Bocharov <adeep@lexina.in>
+---
+ disk/Kconfig    |  13 ++++++
+ disk/Makefile   |   1 +
+ disk/part_aml.c | 110 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 124 insertions(+)
+ create mode 100644 disk/part_aml.c
+
+diff --git a/disk/Kconfig b/disk/Kconfig
+index c9b9dbaf1a..83d971532a 100644
+--- a/disk/Kconfig
++++ b/disk/Kconfig
+@@ -157,4 +157,17 @@ config PARTITION_TYPE_GUID
+ 	  Activate the configuration of GUID type
+ 	  for EFI partition
+ 
++config AML_PARTITION
++	bool "Enable AML partition table"
++	depends on PARTITIONS
++	help
++	   "AML_PARTITION_HELP"
++
++config AML_GPT
++	bool "Enable AML GPT partition table"
++	depends on PARTITIONS
++	select RANDOM_UUID
++	help
++	   "AML_GPT_HELP"
++
+ endmenu
+diff --git a/disk/Makefile b/disk/Makefile
+index 45588cf66e..dee47d3e78 100644
+--- a/disk/Makefile
++++ b/disk/Makefile
+@@ -17,4 +17,5 @@ obj-$(CONFIG_$(SPL_TPL_)DOS_PARTITION)   += part_dos.o
+ obj-$(CONFIG_$(SPL_TPL_)ISO_PARTITION)   += part_iso.o
+ obj-$(CONFIG_$(SPL_TPL_)AMIGA_PARTITION) += part_amiga.o
+ obj-$(CONFIG_$(SPL_TPL_)EFI_PARTITION)   += part_efi.o
++obj-$(CONFIG_AML_PARTITION)              += part_aml.o
+ endif
+diff --git a/disk/part_aml.c b/disk/part_aml.c
+new file mode 100644
+index 0000000000..fba10916c2
+--- /dev/null
++++ b/disk/part_aml.c
+@@ -0,0 +1,110 @@
++/*
++ * (C) Copyright 2001
++ * Yonghui.yu , Amlogic Inc, yonghui.yu@amlogic.com.
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include <common.h>
++#include <command.h>
++#include <memalign.h>
++
++#include <common.h>
++#include <blk.h>
++#include <command.h>
++#include <ide.h>
++#include <memalign.h>
++#include <asm/unaligned.h>
++#include <linux/compiler.h>
++#include <part.h>
++
++#ifdef CONFIG_HAVE_BLOCK_DEVICE
++extern int get_part_info_from_tbl(struct blk_desc * dev_desc,
++	int part_num, struct disk_partition * info);
++int get_part_info_by_name(struct blk_desc *dev_desc,
++	const char *name, struct disk_partition *info);
++#define	AML_PART_DEBUG	(0)
++
++#if	(AML_PART_DEBUG)
++#define	PRINTF(fmt,args...)	printf (fmt ,##args)
++#else
++#define PRINTF(fmt,args...)
++#endif
++
++#define AML_SEC_SIZE	(512)
++#define MAGIC_OFFSET	(1)
++
++/* read back boot partitons */
++static int _get_partition_info_aml(struct blk_desc * dev_desc,
++	int part_num, struct disk_partition * info, int verb)
++{
++	int ret = 0;
++
++	if (IF_TYPE_MMC != dev_desc->if_type)
++		return -1;
++
++	info->blksz=dev_desc->blksz;
++	sprintf ((char *)info->type, "U-Boot");
++	/* using partition name in partition tables */
++	ret = get_part_info_from_tbl(dev_desc, part_num, info);
++	if (ret) {
++		/*printf ("** Partition %d not found on device %d **\n",
++			part_num,dev_desc->devnum);*/
++		return -1;
++	}
++
++	PRINTF(" part %d found @ %lx size %lx\n",part_num,info->start,info->size);
++	return 0;
++}
++
++int get_partition_info_aml(struct blk_desc * dev_desc,
++	int part_num, struct disk_partition * info)
++{
++	return(_get_partition_info_aml(dev_desc, part_num, info, 1));
++}
++
++int get_partition_info_aml_by_name(struct blk_desc *dev_desc,
++	const char *name, struct disk_partition *info)
++{
++	return (get_part_info_by_name(dev_desc,
++		name, info));
++}
++
++void print_part_aml(struct blk_desc * dev_desc)
++{
++	struct disk_partition info;
++	int i;
++	if (_get_partition_info_aml(dev_desc,0,&info,0) == -1) {
++		printf("** No boot partition found on device %d **\n",dev_desc->devnum);
++		return;
++	}
++	printf("Part   Start     Sect x Size Type  name\n");
++	i=0;
++	do {
++		printf(" %02d " LBAFU " " LBAFU " %6ld %.32s %.32s\n",
++		       i++, info.start, info.size, info.blksz, info.type, info.name);
++	} while (_get_partition_info_aml(dev_desc,i,&info,0)!=-1);
++}
++#define AML_MPT_OFFSET	(73728)	/* 36M */
++/* fix 40Mbyte to check the MPT magic */
++int test_part_aml (struct blk_desc *dev_desc)
++{
++	ALLOC_CACHE_ALIGN_BUFFER(char, buffer, dev_desc->blksz);
++	if (blk_dread(dev_desc, AML_MPT_OFFSET, 1, (ulong *) buffer) != 1)
++		return -1;
++	if (!strncmp(buffer, "MPT", 3))
++		return 1; // FIXME: return negative result for AML partition for normal u-boot bootsequence
++	return 1;
++}
++
++
++U_BOOT_PART_TYPE(aml) = {
++	.name		= "AML",
++	.part_type	= PART_TYPE_AML,
++	.max_entries	= AML_ENTRY_NUMBERS,
++	.get_info	= get_partition_info_aml,
++	.print		= print_part_aml,
++	.test		= test_part_aml,
++};
++
++#endif
+-- 
+2.34.1
+
