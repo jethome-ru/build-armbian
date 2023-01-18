@@ -1,4 +1,4 @@
-From 050b991a8472443a8cec54efe857fae0db49cb2d Mon Sep 17 00:00:00 2001
+From 8425f9f7cdf227ddbae293d994e5ff1dafed9509 Mon Sep 17 00:00:00 2001
 From: Viacheslav Bocharov <adeep@lexina.in>
 Date: Wed, 18 Jan 2023 11:51:23 +0300
 Subject: [PATCH 17/17] Disable efi options for JetHub H1

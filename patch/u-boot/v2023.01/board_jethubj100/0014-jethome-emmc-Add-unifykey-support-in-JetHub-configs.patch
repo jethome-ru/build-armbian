@@ -1,4 +1,4 @@
-From cc1d4d25c38defd43deccb3c19b2eacc4862904d Mon Sep 17 00:00:00 2001
+From 5efb5347b85c0ee8c905b49e5e0a201c9a04bdfd Mon Sep 17 00:00:00 2001
 From: Viacheslav Bocharov <adeep@lexina.in>
 Date: Wed, 18 Jan 2023 11:48:04 +0300
 Subject: [PATCH 14/17] jethome-emmc: Add unifykey support in JetHub configs

@@ -1,4 +1,4 @@
-From f6bb2bb72f0604b18da948e7d24e14c7d3f1d966 Mon Sep 17 00:00:00 2001
+From b698a0bc72448d1ccd22ffbae7d18316f53188e6 Mon Sep 17 00:00:00 2001
 From: Viacheslav Bocharov <adeep@lexina.in>
 Date: Wed, 18 Jan 2023 11:37:12 +0300
 Subject: [PATCH 06/17] jethome-emmc: Add mmc extended driver
@@ -2174,7 +2174,7 @@ index 0000000000..a9b0ff780f
 +
 diff --git a/drivers/mmc/storage_emmc.c b/drivers/mmc/storage_emmc.c
 new file mode 100644
-index 0000000000..48519a6eea
+index 0000000000..d938066e49
 --- /dev/null
 +++ b/drivers/mmc/storage_emmc.c
 @@ -0,0 +1,946 @@
@@ -2501,18 +2501,18 @@ index 0000000000..48519a6eea
 +			return -1;
 +		}
 +
-+		ret = blk_select_hwpart_devnum(IF_TYPE_MMC, STORAGE_EMMC, BOOT0_PARTITION);
++		ret = blk_select_hwpart_devnum(UCLASS_MMC, STORAGE_EMMC, BOOT0_PARTITION);
 +		if (ret) goto R_SWITCH_BACK;
 +		ret = blk_derase(mmc_get_blk_desc(mmc), 0, 0);
 +		printf("boot0 partition erased: %s\n", (ret == 0) ? "OK" : "ERROR");
 +
-+		ret = blk_select_hwpart_devnum(IF_TYPE_MMC, STORAGE_EMMC, BOOT1_PARTITION);
++		ret = blk_select_hwpart_devnum(UCLASS_MMC, STORAGE_EMMC, BOOT1_PARTITION);
 +
 +		if (ret) goto R_SWITCH_BACK;
 +		ret = blk_derase(mmc_get_blk_desc(mmc), 0, 0);
 +		printf("boot1 partition erased: %s\n", (ret == 0) ? "OK" : "ERROR");
 +R_SWITCH_BACK:
-+		ret = blk_select_hwpart_devnum(IF_TYPE_MMC, STORAGE_EMMC, USER_PARTITION);
++		ret = blk_select_hwpart_devnum(UCLASS_MMC, STORAGE_EMMC, USER_PARTITION);
 +
 +	} else if (flag == ERASE_RESERVED) {//erase reserved
 +
@@ -2757,7 +2757,7 @@ index 0000000000..48519a6eea
 +	for (i=0;i<3;i++) {//cpy:
 +
 +		if (cpy & 1) {
-+			ret = blk_select_hwpart_devnum(IF_TYPE_MMC, STORAGE_EMMC, i);
++			ret = blk_select_hwpart_devnum(UCLASS_MMC, STORAGE_EMMC, i);
 +			if (ret) goto R_SWITCH_BACK;
 +#ifdef CONFIG_AML_GPT
 +			if (i == 0)
@@ -2775,7 +2775,7 @@ index 0000000000..48519a6eea
 +
 +
 +R_SWITCH_BACK:
-+	ret = blk_select_hwpart_devnum(IF_TYPE_MMC, STORAGE_EMMC, USER_PARTITION);
++	ret = blk_select_hwpart_devnum(UCLASS_MMC, STORAGE_EMMC, USER_PARTITION);
 +	if (ret != 0) {
 +		printf("switch part  failed \n");
 +		return -1;
@@ -2805,7 +2805,7 @@ index 0000000000..48519a6eea
 +	for (i=0;i<3;i++) {//cpy:bin 100 is oprate boot1,bin 010 is oprate boot0,bin 001 is oprate user bootloader.bin 111 is operate all boot.
 +
 +		if (cpy & 1) {
-+			ret = blk_select_hwpart_devnum(IF_TYPE_MMC, STORAGE_EMMC, i);
++			ret = blk_select_hwpart_devnum(UCLASS_MMC, STORAGE_EMMC, i);
 +			if (ret) goto W_SWITCH_BACK;
 +#ifdef CONFIG_EMMC_BOOT1_TOUCH_REGION
 +			if (i == 2) {
@@ -2830,7 +2830,7 @@ index 0000000000..48519a6eea
 +
 +
 +W_SWITCH_BACK:
-+	ret = blk_select_hwpart_devnum(IF_TYPE_MMC, STORAGE_EMMC, USER_PARTITION);
++	ret = blk_select_hwpart_devnum(UCLASS_MMC, STORAGE_EMMC, USER_PARTITION);
 +	if (ret != 0) {
 +		printf("switch part failed \n");
 +		return -1;
@@ -2857,7 +2857,7 @@ index 0000000000..48519a6eea
 +	for (i=0;i<3;i++) {//cpy:
 +
 +		if (cpy & 1) {
-+			ret = blk_select_hwpart_devnum(IF_TYPE_MMC, STORAGE_EMMC, i);
++			ret = blk_select_hwpart_devnum(UCLASS_MMC, STORAGE_EMMC, i);
 +			if (ret) goto E_SWITCH_BACK;
 +#ifdef CONFIG_EMMC_BOOT1_TOUCH_REGION
 +			if (i == 2) {
@@ -2880,7 +2880,7 @@ index 0000000000..48519a6eea
 +
 +
 +E_SWITCH_BACK:
-+	ret = blk_select_hwpart_devnum(IF_TYPE_MMC, STORAGE_EMMC, USER_PARTITION);
++	ret = blk_select_hwpart_devnum(UCLASS_MMC, STORAGE_EMMC, USER_PARTITION);
 +	if (ret != 0) {
 +		printf("switch part faild \n");
 +		return -1;

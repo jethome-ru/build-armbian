@@ -1,4 +1,4 @@
-From a024c229f7de85dd7cd0599c82e9c1b6ed536264 Mon Sep 17 00:00:00 2001
+From 9d70ff701d8772d0df6c00d8fe74168c326a9698 Mon Sep 17 00:00:00 2001
 From: Viacheslav Bocharov <adeep@lexina.in>
 Date: Thu, 22 Dec 2022 15:10:29 +0300
 Subject: [PATCH 15/17] ARM: amlogic: revert JetHub D1 eth mac generation with

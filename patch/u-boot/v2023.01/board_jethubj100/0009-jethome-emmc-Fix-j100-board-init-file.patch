@@ -1,4 +1,4 @@
-From 042eb8cb01219aacd0641640d2a5606fab4f69be Mon Sep 17 00:00:00 2001
+From 28c5ad9421d96111e0d0e3ac75081dd25755cb86 Mon Sep 17 00:00:00 2001
 From: Viacheslav Bocharov <adeep@lexina.in>
 Date: Wed, 18 Jan 2023 11:43:08 +0300
 Subject: [PATCH 09/17] jethome-emmc: Fix j100 board init file

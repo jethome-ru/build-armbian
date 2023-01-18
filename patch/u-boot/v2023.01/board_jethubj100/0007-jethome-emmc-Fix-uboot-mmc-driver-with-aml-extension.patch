@@ -1,4 +1,4 @@
-From 2d94afe6417d572e2c543124f7d5ebc3757a703c Mon Sep 17 00:00:00 2001
+From 5e167c1166f621f9a3bdd9808bdf60b87a2d0815 Mon Sep 17 00:00:00 2001
 From: Viacheslav Bocharov <adeep@lexina.in>
 Date: Wed, 18 Jan 2023 11:39:26 +0300
 Subject: [PATCH 07/17] jethome-emmc: Fix uboot mmc driver with aml-extensions

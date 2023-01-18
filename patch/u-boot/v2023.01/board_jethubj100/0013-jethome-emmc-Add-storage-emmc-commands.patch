@@ -1,4 +1,4 @@
-From c8961fb7b844a77138cb250c7cb248a3566e1a1f Mon Sep 17 00:00:00 2001
+From d95eec931d598a22b2a681f6d2a05b28b5c9f8aa Mon Sep 17 00:00:00 2001
 From: Viacheslav Bocharov <adeep@lexina.in>
 Date: Wed, 18 Jan 2023 11:46:39 +0300
 Subject: [PATCH 13/17] jethome-emmc: Add storage/emmc commands
@@ -45,7 +45,7 @@ index 0b6a96c1d9..469a12fa7b 100644
  obj-$(CONFIG_CMD_REGULATOR) += regulator.o
 diff --git a/cmd/aml_mmc.c b/cmd/aml_mmc.c
 new file mode 100644
-index 0000000000..06e0d9ea0c
+index 0000000000..db9927e912
 --- /dev/null
 +++ b/cmd/aml_mmc.c
 @@ -0,0 +1,3542 @@
@@ -299,7 +299,7 @@ index 0000000000..06e0d9ea0c
 +	/* erase bootloader in user/boot0/boot1 */
 +	for (i = 0; i < count; i++) {
 +		if (map & (0x1 << i)) {
-+			if (!blk_select_hwpart_devnum(IF_TYPE_MMC, 1, i)) {
++			if (!blk_select_hwpart_devnum(UCLASS_MMC, 1, i)) {
 +				lbaint_t start = 0, blkcnt;
 +
 +				blkcnt = mmc->capacity >> blk_shift;
@@ -389,7 +389,7 @@ index 0000000000..06e0d9ea0c
 +	/* erase bootloader in user/boot0/boot1 */
 +	for (i = 0; i < count; i++) {
 +		if (map & (0x1 << i)) {
-+			if (!blk_select_hwpart_devnum(IF_TYPE_MMC, 1, i)) {
++			if (!blk_select_hwpart_devnum(UCLASS_MMC, 1, i)) {
 +/* some customer may use boot1 higher 2M as private data. */
 +#ifdef CONFIG_EMMC_BOOT1_TOUCH_REGION
 +				if (2 == i && CONFIG_EMMC_BOOT1_TOUCH_REGION <= size) {

@@ -1,4 +1,4 @@
-From 3f03660672c077fe09caab90e876a6946cf79806 Mon Sep 17 00:00:00 2001
+From ec2ef26483cd091d7594cf0f852404391b8e1330 Mon Sep 17 00:00:00 2001
 From: Viacheslav Bocharov <adeep@lexina.in>
 Date: Wed, 18 Jan 2023 11:42:20 +0300
 Subject: [PATCH 08/17] jethome-emmc: Add AML Partition support

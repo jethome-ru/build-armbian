@@ -1,4 +1,4 @@
-From 2fa09272c66e75b7e19f01927b154704e8849685 Mon Sep 17 00:00:00 2001
+From 30c86d8adb8067e25c9a2092fd9699d6860a3aa0 Mon Sep 17 00:00:00 2001
 From: Viacheslav Bocharov <adeep@lexina.in>
 Date: Wed, 18 Jan 2023 11:44:45 +0300
 Subject: [PATCH 10/17] jethome-emmc: Fix mmc.h include for additional commands

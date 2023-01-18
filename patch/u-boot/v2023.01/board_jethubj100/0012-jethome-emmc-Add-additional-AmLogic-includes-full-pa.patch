@@ -1,4 +1,4 @@
-From db9d568fc3ffea5e45a519725c77f12c5e9ac93e Mon Sep 17 00:00:00 2001
+From 2d486def45cfdabf3e096d111bf4648289e82a86 Mon Sep 17 00:00:00 2001
 From: Viacheslav Bocharov <adeep@lexina.in>
 Date: Wed, 18 Jan 2023 11:45:39 +0300
 Subject: [PATCH 12/17] jethome-emmc: Add additional AmLogic includes

@@ -1,4 +1,4 @@
-From fa852a3a19a4f7c9b2270f3c5f1ca6fa73102b28 Mon Sep 17 00:00:00 2001
+From 7199916c13389240fd4d4f909b6f3d4bd257c523 Mon Sep 17 00:00:00 2001
 From: Viacheslav Bocharov <adeep@lexina.in>
 Date: Wed, 18 Jan 2023 11:45:01 +0300
 Subject: [PATCH 11/17] jethome-emmc: Fix part.h for AML partition support
