@@ -353,7 +353,7 @@ driver_rtl88x2cs()
 	if linux-version compare "${version}" ge 5.9 && [ "$EXTRAWIFI" == yes ] ; then
 
 		# attach to specifics tag or branch
-		local rtl88x2csver="branch:tune_for_jethub"
+		local rtl88x2csver="branch:task/102-check-w2p-mode"
 
 		display_alert "Adding" "Wireless drivers for Realtek 88x2cs chipsets ${rtl88x2csver}" "info"
 
