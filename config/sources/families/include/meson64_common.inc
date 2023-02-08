@@ -37,6 +37,14 @@ case $BRANCH in
 
 esac
 
+
+BOOTBRANCH="task/66-fix-amlogic-u-boot-for-h2"
+BOOTSOURCE="https://github.com/jethome-iot/u-boot.git"
+KERNELSOURCE='https://github.com/jethome-iot/linux-kernel-amlogic.git'
+KERNELBRANCH='tag:linux-amlogic-5.4-jethub'
+KERNELDIR='linux-jethub-amlogic'
+
+
 # this helper function includes postprocess for p212 and its variants.
 # $1 PATH for uboot blob repo
 # $2 dir name in uboot blob repo
